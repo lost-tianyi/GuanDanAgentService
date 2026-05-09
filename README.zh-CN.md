@@ -81,7 +81,67 @@ npm run start     # 启动 dist 服务
 npx tsc --noEmit  # 类型检查
 ```
 
-## 8) 配置说明（摘要）
+## 8) Docker 部署
+
+仓库根目录提供 **`Dockerfile`** 与 **`docker-compose.yml`**：单容器内由 Node 托管前端静态资源（`client/dist`）、Socket.IO 与 `/health`，默认监听 **3001**。镜像构建时已默认 **`VITE_SOCKET_URL` 为空**，前端 Socket 与页面**同源**（适合单端口访问）。
+
+### 8.1 前置条件
+
+- 已安装 [Docker](https://docs.docker.com/get-docker/)（桌面版需先启动守护进程）。
+- 准备 **`server/.env`**（可复制 `server/.env.example`）：教练 / LLM 相关密钥只放在此文件或运行时注入，**不要**写进镜像或提交 Git。
+
+### 8.2 构建镜像
+
+在**仓库根目录**执行：
+
+```bash
+docker build -t guandan:latest .
+```
+
+若前端与 Socket 不在同一域名（例如静态与 API 分离），构建时传入 Socket 根地址：
+
+```bash
+docker build --build-arg VITE_SOCKET_URL=https://api.example.com -t guandan:latest .
+```
+
+### 8.3 运行容器
+
+将主机上的 `server/.env` **只读挂载**到容器内路径 `/app/server/.env`（与服务端 `load-env` 约定一致）：
+
+```bash
+docker run -d --name guandan -p 3001:3001 \
+  -v "$(pwd)/server/.env:/app/server/.env:ro" \
+  guandan:latest
+```
+
+浏览器访问：`http://<主机>:3001`。健康检查：`GET http://<主机>:3001/health`。
+
+不配 `.env` 时服务仍可启动，但教练 LLM 能力依赖的环境变量不会生效。
+
+### 8.4 Docker Compose
+
+```bash
+docker compose up --build -d
+```
+
+默认映射 `3001:3001`。若需挂载密钥，可在 `docker-compose.yml` 的 `guandan` 服务下增加：
+
+```yaml
+volumes:
+  - ./server/.env:/app/server/.env:ro
+```
+
+### 8.5 常用环境变量（运行时）
+
+| 变量 | 说明 |
+|------|------|
+| `PORT` | HTTP 端口，默认 `3001` |
+| `NODE_ENV` | 镜像内已为 `production`，监听 `0.0.0.0` 便于外网访问 |
+| `CLIENT_DIST_PATH` | 静态资源目录，默认 `/app/client/dist`，一般无需改 |
+
+详细清单见 `server/src/config/env.ts` 与 `server/.env.example`。
+
+## 9) 配置说明（摘要）
 服务端常见开关（详见 `server/src/config/env.ts`）：
 - `COACH_HINT_ENABLED`：是否开启教练能力。
 - `COACH_USE_LLM`：是否启用 LLM 解释/建议。
@@ -92,7 +152,7 @@ npx tsc --noEmit  # 类型检查
 - 默认读取 `client/public/audio/bgm.mp3`。
 - 或使用 `VITE_BGM_URL` 指向远端 mp3。
 
-## 9) 快速排障
+## 10) 快速排障
 - 前端能打开但无法对局：先确认服务端是否在运行。
 - 教练按钮不显示：检查是否 `mode=local`、是否轮到人类玩家。
 - 教练无 LLM 输出：检查 `COACH_USE_LLM`、API Key、超时配置。

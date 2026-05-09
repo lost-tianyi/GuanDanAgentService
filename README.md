@@ -78,6 +78,8 @@ guandan/
 ├── docs/                   # PRD / HLD / LLD（教练 V1 设计文档）
 ├── openspec/               # OpenSpec：现状规格 specs/、变更提案 changes/
 ├── scripts/                # 根目录辅助脚本（如 e2e 包装）
+├── Dockerfile              # 单容器镜像：前端静态 + 服务端
+├── docker-compose.yml      # 本地/云端快速启动示例
 ├── README.md
 └── package.json
 ```
@@ -125,6 +127,19 @@ npm run build
 # 启动生产服务器
 npm run start
 ```
+
+### Docker 部署
+
+在仓库根目录构建并运行（需已安装 Docker）：
+
+```bash
+docker build -t guandan:latest .
+docker run -d --name guandan -p 3001:3001 \
+  -v "$(pwd)/server/.env:/app/server/.env:ro" \
+  guandan:latest
+```
+
+访问 `http://localhost:3001`。亦可使用 `docker compose up --build -d`。密钥放在 `server/.env`，勿打入镜像。详细说明见 [`README.zh-CN.md`](README.zh-CN.md) 第 8 节。
 
 ### 测试
 

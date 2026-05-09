@@ -81,7 +81,37 @@ npm run start          # run dist server
 npx tsc --noEmit       # type check
 ```
 
-## 8) Configuration (Summary)
+## 8) Docker Deployment
+
+The repo root includes a **`Dockerfile`** and **`docker-compose.yml`**: one container serves the built Vue app (`client/dist`), Socket.IO, and `GET /health` on port **3001** by default. The client is built with an empty **`VITE_SOCKET_URL`**, so the Socket.IO client connects to the **same origin** as the page (good for single-port hosting).
+
+**Build** (from repo root):
+
+```bash
+docker build -t guandan:latest .
+```
+
+If the browser and Socket endpoint use different origins, set at build time:
+
+```bash
+docker build --build-arg VITE_SOCKET_URL=https://api.example.com -t guandan:latest .
+```
+
+**Run** (mount `server/.env` read-only; never bake secrets into the image):
+
+```bash
+docker run -d --name guandan -p 3001:3001 \
+  -v "$(pwd)/server/.env:/app/server/.env:ro" \
+  guandan:latest
+```
+
+Open `http://<host>:3001`. Health: `GET /health`.
+
+**Compose:** `docker compose up --build -d` — optionally add a volume for `./server/.env` as in `README.zh-CN.md` section 8.
+
+Runtime env: see `server/.env.example` and `server/src/config/env.ts` (`PORT`, `CLIENT_DIST_PATH`, LLM keys, etc.).
+
+## 9) Configuration (Summary)
 Common server flags (see `server/src/config/env.ts`):
 - `COACH_HINT_ENABLED`: enable/disable coach.
 - `COACH_USE_LLM`: enable/disable LLM reasoning/recommendation.
@@ -92,7 +122,7 @@ BGM (this audio directory):
 - Default local file: `client/public/audio/bgm.mp3`
 - Optional override: `VITE_BGM_URL` for remote mp3 URL.
 
-## 9) Quick Troubleshooting
+## 10) Quick Troubleshooting
 - UI opens but game does not progress: ensure server is running.
 - Coach button missing: check `mode=local` and verify it is the human player's turn.
 - Coach has no LLM output: verify `COACH_USE_LLM`, API key, and timeout.

@@ -20,11 +20,16 @@ export function useSocket() {
   function connect() {
     if (socket?.connected) return socket
 
+    const raw = import.meta.env.VITE_SOCKET_URL as string | undefined
+    /** 显式空字符串：与页面同源（Docker / Nginx 同端口部署） */
     const url =
-      (import.meta.env.VITE_SOCKET_URL as string | undefined) || gameConfig.client.socketUrl
-    socket = io(url, {
-      transports: ['websocket', 'polling']
-    })
+      raw === ''
+        ? undefined
+        : raw !== undefined && raw !== ''
+          ? raw
+          : gameConfig.client.socketUrl
+    const opts = { transports: ['websocket', 'polling'] as ('websocket' | 'polling')[] }
+    socket = url === undefined ? io(opts) : io(url, opts)
 
     socket.on('connect', () => {
       connected.value = true

@@ -1,0 +1,13 @@
+# docker compose up --build -d
+# 密钥：可在主机创建 server/.env 后取消注释挂载：
+# volumes:
+#   - ./server/.env:/app/server/.env:ro
+
+services:
+  guandan:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: "3001"
+    restart: unless-stopped

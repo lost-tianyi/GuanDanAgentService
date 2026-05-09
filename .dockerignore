@@ -1,0 +1,14 @@
+.git
+.gitignore
+.cursor
+**/node_modules
+client/dist
+server/dist
+client/playwright-report
+**/*.md
+!README.md
+openspec
+docs
+.env
+**/.env
+server/.env
