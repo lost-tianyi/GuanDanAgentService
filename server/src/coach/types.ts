@@ -9,6 +9,7 @@ export type CoachErrorCode =
   | 'COACH_NOT_YOUR_TURN'
   | 'COACH_REQUEST_PLAYER_IS_AI'
   | 'COACH_HINT_DISABLED'
+  | 'COACH_UNLOCK_REQUIRED'
   | 'COACH_INTERNAL_ERROR'
 
 /** 教练可见的公开局势（不含他家具体牌面） */

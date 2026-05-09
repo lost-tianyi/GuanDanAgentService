@@ -39,7 +39,12 @@ export function useSocket() {
     socket.on('disconnect', () => {
       connected.value = false
       store.resetAutoPlay()
+      store.resetCoachUnlockSession()
       console.log('Disconnected from server')
+    })
+
+    socket.on('coach-gate', (payload: { required?: boolean }) => {
+      store.setCoachGateFromServer(!!payload?.required)
     })
 
     socket.on('game-started', (state) => {
@@ -222,6 +227,23 @@ export function useSocket() {
     return requestId
   }
 
+  function unlockCoach(password: string): Promise<{ ok: boolean; errorMessage?: string }> {
+    return new Promise((resolve) => {
+      if (!socket?.connected) {
+        resolve({ ok: false, errorMessage: '未连接服务器' })
+        return
+      }
+      socket.emit('unlock-coach', { password }, (res: { ok?: boolean; errorMessage?: string }) => {
+        if (res?.ok) {
+          store.setCoachUnlockVerified(true)
+          resolve({ ok: true })
+        } else {
+          resolve({ ok: false, errorMessage: res?.errorMessage || '解锁失败' })
+        }
+      })
+    })
+  }
+
   function sendMessage(roomId: string, message: string) {
     socket?.emit('send-message', { roomId, message })
   }
@@ -264,6 +286,7 @@ export function useSocket() {
     pass,
     submitTribute,
     requestCoachHint,
+    unlockCoach,
     sendMessage,
     sendEmoji,
     setAutoPlay,

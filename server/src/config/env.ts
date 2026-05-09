@@ -55,6 +55,10 @@
  *   中文：非流式模式下是否请求 `response_format: json_object`（依赖供应商支持）。
  *   取值：设为字符串 `true` 时开启。
  *
+ * COACH_UNLOCK_PASSWORD
+ *   中文：非空时，该 Socket 连接须先通过事件 `unlock-coach` 提交正确密码后，才允许 `request-coach-hint`。
+ *   安全：与 OPENAI_API_KEY 一样仅放在服务端环境变量 / Docker 注入，勿提交仓库。
+ *
  * ┌──────────────────────────────────────────────────────────────────────────┐
  * │ 四、其它（AI 出牌等模块，非本文件组装的 gameConfig）                        │
  * └──────────────────────────────────────────────────────────────────────────┘
@@ -98,6 +102,8 @@ export interface ResolvedServerGameConfig {
   coachUseLlm: boolean
   coachUseStream: boolean
   coachHintEnabled: boolean
+  /** 非空时要求客户端先 unlock-coach 再请求教练 */
+  coachUnlockPassword: string
   /** 非 Kimi K2 时作为 temperature；undefined 表示使用 reason-engine 内建默认 */
   coachOpenAiTemperature: number | undefined
   coachOpenAiJsonMode: boolean
@@ -113,6 +119,7 @@ export function buildResolvedServerConfig(
     process.env.OPENAI_API_BASE?.trim() || defaults.defaultOpenAiApiBase.replace(/\/$/, '')
 
   const openAiApiKey = process.env.OPENAI_API_KEY?.trim() || ''
+  const coachUnlockPassword = process.env.COACH_UNLOCK_PASSWORD?.trim() || ''
 
   const coachLlmModel =
     process.env.COACH_OPENAI_MODEL?.trim() || defaults.coachDefaultOpenAiModel
@@ -138,6 +145,7 @@ export function buildResolvedServerConfig(
     coachUseLlm: process.env.COACH_USE_LLM !== 'false',
     coachUseStream: process.env.COACH_USE_STREAM !== 'false',
     coachHintEnabled: process.env.COACH_HINT_ENABLED !== 'false',
+    coachUnlockPassword,
     coachOpenAiTemperature: parseOptionalPositiveNumber(process.env.COACH_OPENAI_TEMPERATURE),
     coachOpenAiJsonMode: process.env.COACH_OPENAI_JSON_MODE === 'true',
   }

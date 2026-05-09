@@ -40,6 +40,11 @@ export const useGameStore = defineStore('game', () => {
   /** 服务端「托管」：由 AI 逻辑代打；同步自服务器 */
   const autoPlayEnabled = ref(false)
 
+  /** 服务端 COACH_UNLOCK_PASSWORD 是否非空（由 coach-gate 同步） */
+  const coachGateRequired = ref(false)
+  /** 当前连接是否已通过 unlock-coach */
+  const coachUnlockVerified = ref(false)
+
   const coachHintState = ref<CoachHintState>({
     loading: false,
     reasonStreaming: false,
@@ -214,6 +219,21 @@ export const useGameStore = defineStore('game', () => {
     }
   }
 
+  function setCoachGateFromServer(required: boolean) {
+    coachGateRequired.value = required
+    coachUnlockVerified.value = !required
+  }
+
+  function setCoachUnlockVerified(ok: boolean) {
+    coachUnlockVerified.value = ok
+  }
+
+  /** Socket 断开时由 useSocket 调用，下次连接需重新解锁 */
+  function resetCoachUnlockSession() {
+    coachGateRequired.value = false
+    coachUnlockVerified.value = false
+  }
+
   return {
     gameState,
     messages,
@@ -223,6 +243,8 @@ export const useGameStore = defineStore('game', () => {
     playerId,
     mode,
     autoPlayEnabled,
+    coachGateRequired,
+    coachUnlockVerified,
     myPlayer,
     isMyTurn,
     currentTributeStep,
@@ -244,5 +266,8 @@ export const useGameStore = defineStore('game', () => {
     appendCoachHintChunk,
     applyCoachHintEnd,
     resetCoachHint,
+    setCoachGateFromServer,
+    setCoachUnlockVerified,
+    resetCoachUnlockSession,
   }
 })

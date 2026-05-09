@@ -109,7 +109,9 @@ Open `http://<host>:3001`. Health: `GET /health`.
 
 **Compose:** `docker compose up --build -d` — optionally add a volume for `./server/.env` as in `README.zh-CN.md` section 8.
 
-Runtime env: see `server/.env.example` and `server/src/config/env.ts` (`PORT`, `CLIENT_DIST_PATH`, LLM keys, etc.).
+Runtime env: see `server/.env.example` and `server/src/config/env.ts` (`PORT`, `CLIENT_DIST_PATH`, `OPENAI_API_KEY`, etc.).
+
+**Coach gate:** when `COACH_UNLOCK_PASSWORD` is set (non-empty), the browser must send a correct password over Socket.IO event `unlock-coach` before `request-coach-hint` is allowed (same session per connection; reconnect to re-verify). Configure it alongside `OPENAI_API_KEY` via Docker `-e` or mounted `server/.env`.
 
 ## 9) Configuration (Summary)
 Common server flags (see `server/src/config/env.ts`):

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto'
 import { Server as SocketServer } from 'socket.io'
 import type { Server as HTTPServer } from 'http'
 import { gameConfig } from '../config/game.js'
@@ -28,6 +29,20 @@ interface Room {
 
 const rooms = new Map<string, Room>()
 const aiReasonEngine = new ReasonEngine()
+
+/** 本连接是否已通过 COACH_UNLOCK_PASSWORD 校验（按 socket.id） */
+const coachUnlockVerified = new Map<string, boolean>()
+
+function timingSafeEqualUtf8(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, 'utf8')
+  const bufB = Buffer.from(b, 'utf8')
+  if (bufA.length !== bufB.length) return false
+  try {
+    return timingSafeEqual(bufA, bufB)
+  } catch {
+    return false
+  }
+}
 
 function buildHintInputForAi(room: Room, roomId: string, playerId: string): BuildCoachHintInput | null {
   const state = room.game.getState()
@@ -72,6 +87,26 @@ export function setupSocket(io: HTTPServer) {
 
   socketServer.on('connection', (socket) => {
     console.log(`客户端连接: ${socket.id}`)
+
+    const coachPwdRequired = gameConfig.server.coachUnlockPassword.length > 0
+    coachUnlockVerified.delete(socket.id)
+    socket.emit('coach-gate', { required: coachPwdRequired })
+
+    socket.on('unlock-coach', (payload: { password?: string }, callback) => {
+      const expected = gameConfig.server.coachUnlockPassword
+      if (!expected) {
+        coachUnlockVerified.set(socket.id, true)
+        callback?.({ ok: true as const })
+        return
+      }
+      const input = typeof payload?.password === 'string' ? payload.password : ''
+      if (timingSafeEqualUtf8(input, expected)) {
+        coachUnlockVerified.set(socket.id, true)
+        callback?.({ ok: true as const })
+      } else {
+        callback?.({ ok: false as const, errorMessage: '密码错误' })
+      }
+    })
 
     socket.on('create-room', ({ roomId, playerName, aiDifficulty, mode }, callback) => {
       if (rooms.has(roomId)) {
@@ -347,6 +382,11 @@ export function setupSocket(io: HTTPServer) {
         return
       }
 
+      if (gameConfig.server.coachUnlockPassword.length > 0 && !coachUnlockVerified.get(socket.id)) {
+        respondError('COACH_UNLOCK_REQUIRED', '请先输入密码解锁教练提示')
+        return
+      }
+
       const s = gameConfig.server
       console.log('[coach] generating…', {
         reqId,
@@ -426,6 +466,7 @@ export function setupSocket(io: HTTPServer) {
 
     socket.on('disconnect', () => {
       console.log(`客户端断开: ${socket.id}`)
+      coachUnlockVerified.delete(socket.id)
 
       for (const [roomId, room] of rooms) {
         if (room.sockets.has(socket.id)) {

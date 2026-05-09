@@ -45,6 +45,7 @@ function onListen() {
     coachUseLlm: s.coachUseLlm,
     coachUseStream: s.coachUseStream,
     hasOpenAiKey: s.openAiApiKey.length > 0,
+    coachUnlockRequired: s.coachUnlockPassword.length > 0,
     openAiApiBase: s.openAiApiBase,
     model: s.coachLlmModel,
     coachReasonTimeoutMs: s.coachReasonTimeoutMs,

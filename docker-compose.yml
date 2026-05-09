@@ -10,4 +10,7 @@ services:
       - "3001:3001"
     environment:
       PORT: "3001"
+      # 生产建议用挂载的 server/.env，勿在仓库中写明文：
+      # OPENAI_API_KEY: ""
+      # COACH_UNLOCK_PASSWORD: ""
     restart: unless-stopped

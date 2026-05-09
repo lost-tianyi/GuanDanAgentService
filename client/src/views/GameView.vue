@@ -103,6 +103,42 @@
       </Transition>
     </Teleport>
 
+    <Teleport to="body">
+      <div
+        v-if="showCoachUnlockModal"
+        class="coach-unlock-layer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="coach-unlock-title"
+      >
+        <div class="coach-unlock-backdrop" @click="closeCoachUnlockModal" />
+        <div class="coach-unlock-sheet">
+          <h2 id="coach-unlock-title" class="coach-unlock-title">解锁教练提示</h2>
+          <p class="coach-unlock-hint">请输入环境变量中配置的密码后，方可请求教练分析。</p>
+          <input
+            v-model="coachUnlockPasswordInput"
+            type="password"
+            class="coach-unlock-input"
+            autocomplete="off"
+            placeholder="密码"
+            @keydown.enter.prevent="submitCoachUnlock"
+          />
+          <p v-if="coachUnlockError" class="coach-unlock-error">{{ coachUnlockError }}</p>
+          <div class="coach-unlock-actions">
+            <button
+              type="button"
+              class="coach-unlock-submit"
+              :disabled="coachUnlockSubmitting"
+              @click="submitCoachUnlock"
+            >
+              {{ coachUnlockSubmitting ? '验证中…' : '确认' }}
+            </button>
+            <button type="button" class="coach-unlock-cancel" @click="closeCoachUnlockModal">取消</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <div v-if="store.gameState.status === 'tribute'" class="tribute-hint">
       <p v-if="store.currentTributeStep">
         {{ tributePhaseDescription }}
@@ -253,6 +289,12 @@ const showCoachHint = computed(() => {
 /** 手牌界面 vs 教练悬浮层；不占用主布局高度 */
 const coachShell = ref<'hand' | 'coach'>('hand')
 
+const showCoachUnlockModal = ref(false)
+const coachUnlockPasswordInput = ref('')
+const coachUnlockError = ref('')
+const coachUnlockSubmitting = ref(false)
+const pendingCoachMode = ref<CoachHintMode>('beginner')
+
 /** 已有推荐结果时可接受（含「不出」：仅返回手牌并清空选中） */
 const canAcceptCoachSuggestion = computed(() => {
   return !!store.coachHintState.recommended && !store.coachHintState.errorMessage
@@ -348,10 +390,51 @@ const handleSubmitTribute = async () => {
 }
 
 const handleCoachHint = (mode: CoachHintMode) => {
+  if (store.coachGateRequired && !store.coachUnlockVerified) {
+    pendingCoachMode.value = mode
+    coachUnlockPasswordInput.value = ''
+    coachUnlockError.value = ''
+    showCoachUnlockModal.value = true
+    return
+  }
   const room = store.roomId || routeRoomId.value
   if (!room) return
   socketApi.requestCoachHint(room, mode)
 }
+
+function closeCoachUnlockModal() {
+  showCoachUnlockModal.value = false
+  coachUnlockError.value = ''
+}
+
+async function submitCoachUnlock() {
+  coachUnlockError.value = ''
+  coachUnlockSubmitting.value = true
+  try {
+    const r = await socketApi.unlockCoach(coachUnlockPasswordInput.value)
+    if (!r.ok) {
+      coachUnlockError.value = r.errorMessage || '验证失败'
+      return
+    }
+    showCoachUnlockModal.value = false
+    const room = store.roomId || routeRoomId.value
+    if (!room) return
+    socketApi.requestCoachHint(room, pendingCoachMode.value)
+  } finally {
+    coachUnlockSubmitting.value = false
+  }
+}
+
+watch(
+  () => store.coachHintState.errorCode,
+  (code) => {
+    if (code !== 'COACH_UNLOCK_REQUIRED') return
+    pendingCoachMode.value = store.coachHintState.coachMode ?? 'beginner'
+    coachUnlockPasswordInput.value = ''
+    coachUnlockError.value = store.coachHintState.errorMessage || '请先输入密码解锁教练提示'
+    showCoachUnlockModal.value = true
+  },
+)
 
 const handleSendMessage = (content: string) => {
   const room = store.roomId || routeRoomId.value
@@ -764,5 +847,99 @@ onMounted(async () => {
 .coach-float-enter-from .coach-float-sheet,
 .coach-float-leave-to .coach-float-sheet {
   transform: translateY(12px);
+}
+
+.coach-unlock-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.coach-unlock-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.coach-unlock-sheet {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 380px;
+  padding: 22px 20px 18px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #3a2e22 0%, #261c14 100%);
+  border: 1px solid var(--ui-chrome-border-soft);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+}
+
+.coach-unlock-title {
+  margin: 0 0 10px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.coach-unlock-hint {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 240, 220, 0.72);
+}
+
+.coach-unlock-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-size: 15px;
+}
+
+.coach-unlock-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.coach-unlock-error {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--error-color, #f5222d);
+}
+
+.coach-unlock-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  justify-content: flex-end;
+}
+
+.coach-unlock-submit {
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 210, 120, 0.35);
+  background: linear-gradient(180deg, var(--ui-accent-gold) 0%, var(--ui-accent-gold-deep) 100%);
+  color: #1a1208;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.coach-unlock-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.coach-unlock-cancel {
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
 }
 </style>

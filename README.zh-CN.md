@@ -138,8 +138,19 @@ volumes:
 | `PORT` | HTTP 端口，默认 `3001` |
 | `NODE_ENV` | 镜像内已为 `production`，监听 `0.0.0.0` 便于外网访问 |
 | `CLIENT_DIST_PATH` | 静态资源目录，默认 `/app/client/dist`，一般无需改 |
+| `OPENAI_API_KEY` | 教练调用 LLM 的密钥（与本地 `server/.env` 一致，Docker 可用 `-e` 或挂载 `.env`） |
+| `COACH_UNLOCK_PASSWORD` | **非空**时，用户须在客户端输入该密码并通过 Socket `unlock-coach` 后，才能请求教练；与 API Key 一样仅配置在服务端 |
 
 详细清单见 `server/src/config/env.ts` 与 `server/.env.example`。
+
+**Docker 示例（勿把真实密钥提交到 Git）：**
+
+```bash
+docker run -d -p 3001:3001 \
+  -e OPENAI_API_KEY="你的key" \
+  -e COACH_UNLOCK_PASSWORD="你的共享密码" \
+  guandan:latest
+```
 
 ## 9) 配置说明（摘要）
 服务端常见开关（详见 `server/src/config/env.ts`）：
@@ -147,6 +158,7 @@ volumes:
 - `COACH_USE_LLM`：是否启用 LLM 解释/建议。
 - `COACH_REASON_TIMEOUT_MS`：教练请求超时。
 - `OPENAI_API_KEY`（或相应 provider key）：LLM 密钥。
+- `COACH_UNLOCK_PASSWORD`：非空时启用教练密码门（每路 Socket 连接验证一次，断线需重验）。
 
 前端 BGM（当前目录音频相关）：
 - 默认读取 `client/public/audio/bgm.mp3`。
