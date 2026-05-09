@@ -4,9 +4,13 @@
 #   docker build -t guandan:latest .
 # 可选：反向代理拆分时指定前端 Socket 根地址，例如
 #   docker build --build-arg VITE_SOCKET_URL=https://api.example.com -t guandan:latest .
+# 前端 @game-config 别名指向 ../server/src/config/game.client-shim.ts，构建阶段需带上该目录否则 vue-tsc 失败
 FROM node:20-bookworm-slim AS client-builder
+WORKDIR /app
+COPY client/package.json client/package-lock.json ./client/
+COPY server/src/config/client.defaults.ts ./server/src/config/client.defaults.ts
+COPY server/src/config/game.client-shim.ts ./server/src/config/game.client-shim.ts
 WORKDIR /app/client
-COPY client/package.json client/package-lock.json ./
 RUN npm ci
 COPY client/ ./
 # 默认空字符串 → 前端与页面同源（单容器部署）；覆盖示例见文件头注释
