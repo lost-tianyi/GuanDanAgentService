@@ -7,7 +7,11 @@
 
     <div class="menu">
       <div class="menu-card" @click="startLocalGame">
-        <div class="icon"><img :src="ui.iconMenuAi" alt="" width="64" height="64" draggable="false" /></div>
+        <div class="icon">
+          <div class="ui-ai-avatar-frame ui-ai-avatar-frame--menu" aria-hidden="true">
+            <img :src="ui.avatarAi" alt="" width="64" height="64" draggable="false" />
+          </div>
+        </div>
         <h3>人机对战</h3>
         <p>与 AI 对手进行游戏</p>
       </div>
@@ -175,11 +179,9 @@ const closeModals = () => {
   align-items: center;
 }
 
-.menu-card .icon img {
-  display: block;
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
+.menu-card .icon .ui-ai-avatar-frame--menu img {
+  width: 100%;
+  height: 100%;
 }
 
 .menu-card h3 {

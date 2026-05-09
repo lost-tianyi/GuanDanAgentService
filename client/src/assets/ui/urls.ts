@@ -10,10 +10,9 @@ import suitSpades from './suit-spades.svg'
 import suitHearts from './suit-hearts.svg'
 import suitDiamonds from './suit-diamonds.svg'
 import suitClubs from './suit-clubs.svg'
-import iconMenuAi from './icon-menu-ai.svg'
 import iconMenuHome from './icon-menu-home.svg'
 import iconMenuJoin from './icon-menu-join.svg'
-import avatarAi from './avatar-ai.svg'
+import avatarAi from './avatar-ai.png'
 import avatarPlayer from './avatar-player.svg'
 import iconBack from './icon-back.svg'
 import iconVolumeOn from './icon-volume-on.svg'
@@ -29,7 +28,6 @@ export const ui = {
   gameFelt,
   /** 生成绒面摄影素材，用于 GameBoard 背景 */
   gameFeltPhoto,
-  iconMenuAi,
   iconMenuHome,
   iconMenuJoin,
   avatarAi,

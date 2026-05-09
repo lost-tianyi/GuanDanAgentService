@@ -1,9 +1,19 @@
 <template>
   <div class="player-info" :class="position" :style="plateStyle">
-    <div class="avatar">
+    <div v-if="player?.isAI" class="ui-ai-avatar-frame ui-ai-avatar-frame--sm">
       <img
         class="avatar-img"
-        :src="player?.isAI ? ui.avatarAi : ui.avatarPlayer"
+        :src="ui.avatarAi"
+        alt=""
+        width="40"
+        height="40"
+        draggable="false"
+      />
+    </div>
+    <div v-else class="avatar">
+      <img
+        class="avatar-img"
+        :src="ui.avatarPlayer"
         alt=""
         width="40"
         height="40"
