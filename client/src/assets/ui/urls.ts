@@ -5,6 +5,7 @@ import type { CardSuit } from '@/types'
 import jokerSmall from './joker-small.svg'
 import jokerBig from './joker-big.svg'
 import gameFelt from './game-felt-texture.svg'
+import gameFeltPhoto from '../generated/felt-table-preview.png'
 import suitSpades from './suit-spades.svg'
 import suitHearts from './suit-hearts.svg'
 import suitDiamonds from './suit-diamonds.svg'
@@ -17,11 +18,17 @@ import avatarPlayer from './avatar-player.svg'
 import iconBack from './icon-back.svg'
 import iconVolumeOn from './icon-volume-on.svg'
 import iconVolumeOff from './icon-volume-off.svg'
+import themePanelHeaderWood from './theme/panel-header-wood.png'
+import themeBtnPrimaryGloss from './theme/btn-primary-gloss.png'
+import themePanelPlayerPlate from './theme/panel-player-plate.png'
 
 export const ui = {
   jokerSmall,
   jokerBig,
+  /** 矢量叠纹（可选）；主牌桌底图见 gameFeltPhoto */
   gameFelt,
+  /** 生成绒面摄影素材，用于 GameBoard 背景 */
+  gameFeltPhoto,
   iconMenuAi,
   iconMenuHome,
   iconMenuJoin,
@@ -30,6 +37,10 @@ export const ui = {
   iconBack,
   iconVolumeOn,
   iconVolumeOff,
+  /** 欢乐斗地主风：顶栏木纹、主按钮高光、玩家铭牌（房间等统计徽标用 CSS 渐变边框，避免位图白边） */
+  themePanelHeaderWood,
+  themeBtnPrimaryGloss,
+  themePanelPlayerPlate,
 } as const
 
 const suitByKey: Record<Exclude<CardSuit, 'joker'>, string> = {

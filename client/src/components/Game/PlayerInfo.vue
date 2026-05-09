@@ -1,5 +1,5 @@
 <template>
-  <div class="player-info" :class="position">
+  <div class="player-info" :class="position" :style="plateStyle">
     <div class="avatar">
       <img
         class="avatar-img"
@@ -25,6 +25,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Player, PlayerPosition } from '@/types'
 import { ui } from '@/assets/ui/urls'
 
@@ -33,6 +34,10 @@ defineProps<{
   isCurrent: boolean
   position: PlayerPosition
 }>()
+
+const plateStyle = computed(() => ({
+  '--player-plate': `url(${ui.themePanelPlayerPlate})`,
+}))
 </script>
 
 <style scoped>
@@ -40,9 +45,13 @@ defineProps<{
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px;
-  background: rgba(0, 0, 0, 0.3);
+  padding: 10px 12px;
   border-radius: 12px;
+  border: 1px solid rgba(255, 200, 120, 0.22);
+  background-image: linear-gradient(145deg, rgba(18, 14, 10, 0.55) 0%, rgba(10, 8, 6, 0.72) 100%), var(--player-plate);
+  background-size: cover, cover;
+  background-position: center, center;
+  box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.08);
 }
 
 .avatar {

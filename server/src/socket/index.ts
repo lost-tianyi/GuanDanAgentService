@@ -1,6 +1,7 @@
 import { Server as SocketServer } from 'socket.io'
 import type { Server as HTTPServer } from 'http'
 import { gameConfig } from '../config/game.js'
+import { playStrength } from '../game/rules.js'
 import { GuandanGame } from '../game/game.js'
 import { BasicAI, type AIDifficulty } from '../ai/basic.js'
 import { findLegalBeatingPlay, findMinimalLegalLead } from '../ai/legal-move-fallback.js'
@@ -676,7 +677,10 @@ async function executeAiPlayTurn(room: Room, roomId: string, io: SocketServer) {
   st = game.getState()
   if (st.currentPlayerIndex === turnIndex && st.players[turnIndex]?.id === playerId) {
     if (!lastPattern || lastPlayerIndex === -1) {
-      const sorted = [...st.players[turnIndex].cards].sort((a, b) => a.value - b.value)
+      const lr = st.levelRank
+      const sorted = [...st.players[turnIndex].cards].sort(
+        (a, b) => playStrength(a, lr) - playStrength(b, lr),
+      )
       const c0 = sorted[0]
       if (c0) {
         const r = tryPlay([c0])

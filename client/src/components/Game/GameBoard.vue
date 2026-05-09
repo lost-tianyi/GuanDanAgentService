@@ -1,5 +1,7 @@
 <template>
-  <div class="game-board" :style="boardSurfaceStyle">
+  <div class="game-board">
+    <div class="game-board__surface" :style="boardSurfaceStyle" aria-hidden="true" />
+    <div class="game-board__content">
     <div class="top-player">
       <PlayerInfo 
         :player="players.top" 
@@ -36,6 +38,7 @@
           :cards="myCards"
           :selected-cards="selectedCards"
           :selectable="handSelectable"
+          :level-rank="gameState.levelRank"
           @select="handleSelectCard"
           @add-to-selection="handleAddToSelection"
         />
@@ -43,6 +46,7 @@
       <div v-if="$slots['bottom-actions']" class="bottom-actions">
         <slot name="bottom-actions" />
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -99,15 +103,18 @@ const rightIndex = computed(() => (myPlayerIndex.value + 1) % 4)
 const leftIndex = computed(() => (myPlayerIndex.value + 3) % 4)
 const playedCards = computed(() => props.gameState.playedCards)
 
-/** 牌桌底纹：assets/ui/game-felt-texture.svg 叠在渐变上 */
+/**
+ * 牌桌底纹：底层照片 cover 保持比例；渐变层 100% 铺满叠色。
+ * 使用 container 查询微调 focal，减轻宽屏/竖屏裁切违和感。
+ */
 const boardSurfaceStyle = computed(() => ({
   backgroundImage: [
-    'radial-gradient(circle at center, rgba(74, 144, 217, 0.1) 0%, transparent 70%)',
-    'linear-gradient(135deg, rgba(26, 26, 46, 0.94) 0%, rgba(22, 33, 62, 0.96) 100%)',
-    `url(${ui.gameFelt})`,
+    'radial-gradient(circle at center, var(--ui-board-radial) 0%, transparent 68%)',
+    'linear-gradient(135deg, var(--ui-board-linear-start) 0%, var(--ui-board-linear-end) 100%)',
+    `url(${ui.gameFeltPhoto})`,
   ].join(', '),
-  backgroundSize: 'auto, auto, 320px 320px',
-  backgroundRepeat: 'no-repeat, no-repeat, repeat',
+  backgroundSize: '100% 100%, 100% 100%, cover',
+  backgroundRepeat: 'no-repeat, no-repeat, no-repeat',
 }))
 
 const createEmptyPlayer = (): Player => ({
@@ -132,49 +139,89 @@ const handleAddToSelection = (card: Card) => {
 
 <style scoped>
 .game-board {
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  border-radius: 16px;
-  padding: 20px;
-  position: relative;
+  container-type: size;
+  container-name: game-board;
 }
 
-.top-player {
+/* 背景单独一层：cover 相对整块牌桌区域，避免与内边距/子元素 flex 高度耦合 */
+.game-board__surface {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background-position: center, center, center 45%;
+}
+
+.game-board__content {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* 暖色叠层与 container focal：竖窄牌桌略上移第三层焦点，避免违和（与 tasks 4.2 目视一致） */
+@container game-board (max-aspect-ratio: 0.65) {
+  .game-board__surface {
+    background-position: center, center, center 34%;
+  }
+}
+
+@container game-board (min-aspect-ratio: 1.75) {
+  .game-board__surface {
+    background-position: center, center, center 50%;
+  }
+}
+
+.game-board__content .top-player {
   height: 80px;
   display: flex;
   justify-content: center;
 }
 
-.middle-row {
+.game-board__content .middle-row {
   flex: 1;
   display: flex;
   min-height: 0;
 }
 
-.left-player,
-.right-player {
+.game-board__content .left-player,
+.game-board__content .right-player {
   width: 150px;
   display: flex;
   align-items: center;
 }
 
-.left-player {
+.game-board__content .left-player {
   justify-content: flex-start;
 }
 
-.right-player {
+.game-board__content .right-player {
   justify-content: flex-end;
 }
 
-.center-area {
+.game-board__content .center-area {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.bottom-player {
+.game-board__content .bottom-player {
   min-height: 180px;
   padding-top: 10px;
   display: flex;
@@ -185,7 +232,7 @@ const handleAddToSelection = (card: Card) => {
   flex-wrap: nowrap;
 }
 
-.my-cards {
+.game-board__content .my-cards {
   flex: 1;
   min-width: 0;
   height: 100%;
@@ -193,7 +240,7 @@ const handleAddToSelection = (card: Card) => {
   justify-content: center;
 }
 
-.bottom-actions {
+.game-board__content .bottom-actions {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;

@@ -1,4 +1,14 @@
-import { createDeck, shuffleDeck, dealCards, sortCards, levelToRank, type Card, type CardRank } from './rules.js'
+import {
+  createDeck,
+  shuffleDeck,
+  dealCards,
+  sortCards,
+  levelToRank,
+  playStrength,
+  isFengRenPei as cardIsFengRenPei,
+  type Card,
+  type CardRank,
+} from './rules.js'
 import { analyzePattern, canBeat, type JudgeContext } from './judge.js'
 
 export type PlayerPosition = 0 | 1 | 2 | 3
@@ -126,18 +136,15 @@ export class GuandanGame {
     if (i >= 0) p.cards.splice(i, 1)
   }
 
-  private isFengRenPei(card: Card): boolean {
-    return card.suit === 'hearts' && card.rank === this.state.levelRank
-  }
-
   /** 进贡牌须为手中最大（逢人配不可进贡） */
   private isValidTributePick(player: Player, card: Card): boolean {
     if (!player.cards.some((c) => c.id === card.id)) return false
-    if (this.isFengRenPei(card)) return false
-    const pool = player.cards.filter((c) => !this.isFengRenPei(c))
+    const lr = levelToRank(this.state.currentLevel)
+    if (cardIsFengRenPei(card, lr)) return false
+    const pool = player.cards.filter((c) => !cardIsFengRenPei(c, lr))
     const use = pool.length ? pool : player.cards
-    const maxV = Math.max(...use.map((c) => c.value))
-    return card.value === maxV
+    const maxV = Math.max(...use.map((c) => playStrength(c, lr)))
+    return playStrength(card, lr) === maxV
   }
 
   /** 还牌：有 10 点及以下时任选一张 ≤10；否则须还最小的一张 */
@@ -221,8 +228,9 @@ export class GuandanGame {
     }
     this.removeCardFromPlayer(playerIndex as PlayerPosition, card)
     this.state.players[step.to].cards.push(card)
-    this.state.players[step.from].cards = sortCards(this.state.players[step.from].cards)
-    this.state.players[step.to].cards = sortCards(this.state.players[step.to].cards)
+    const lr = levelToRank(this.state.currentLevel)
+    this.state.players[step.from].cards = sortCards(this.state.players[step.from].cards, lr)
+    this.state.players[step.to].cards = sortCards(this.state.players[step.to].cards, lr)
     this.state.tributeStepIndex++
     if (this.state.tributeStepIndex >= this.state.tributeQueue.length) {
       const head = this.state.tributeRoundHead ?? (0 as PlayerPosition)
@@ -251,10 +259,11 @@ export class GuandanGame {
       if (!entrustedActorId || entrustedActorId !== from.id) return
     }
     if (step.type === 'tribute') {
-      const pool = from.cards.filter((c) => !this.isFengRenPei(c))
+      const lr = levelToRank(this.state.currentLevel)
+      const pool = from.cards.filter((c) => !cardIsFengRenPei(c, lr))
       const use = pool.length ? pool : from.cards
-      const maxV = Math.max(...use.map((c) => c.value))
-      const card = use.find((c) => c.value === maxV)!
+      const maxV = Math.max(...use.map((c) => playStrength(c, lr)))
+      const card = use.find((c) => playStrength(c, lr) === maxV)!
       this.submitTributeAction(from.id, card.id)
     } else {
       const low = from.cards.filter((c) => c.value <= 10)
@@ -299,7 +308,7 @@ export class GuandanGame {
     this.state.roundFinishOrder = []
     const deck = shuffleDeck(createDeck())
     const reveal = deck[0]
-    const hands = dealCards(deck, 4)
+    const hands = dealCards(deck, 4, levelToRank(this.state.currentLevel))
     this.state.players.forEach((player, i) => {
       player.cards = hands[i]
     })
@@ -465,7 +474,7 @@ export class GuandanGame {
     const pendingRanking = this.state.lastRoundRanking
     const deck = shuffleDeck(createDeck())
     const reveal = deck[0]
-    const hands = dealCards(deck, 4)
+    const hands = dealCards(deck, 4, levelToRank(this.state.currentLevel))
     this.state.players.forEach((player, i) => {
       player.cards = hands[i]
     })

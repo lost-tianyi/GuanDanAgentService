@@ -1,9 +1,28 @@
 :root {
-  --primary-color: #4a90d9;
+  /* --- 语义色（出牌成功 / 警告 / 错误 — 含义不变） --- */
   --success-color: #52c41a;
   --warning-color: #faad14;
   --error-color: #f5222d;
-  --bg-color: #1a1a2e;
-  --card-bg: #16213e;
+
+  /* --- 欢乐斗地主向休闲主题 token --- */
+  --ui-accent-gold: #f5b024;
+  --ui-accent-gold-deep: #e8940c;
+  --ui-accent-title: #ffd466;
+  /** 悬浮控件描边、面板细边框 */
+  --ui-chrome-border: rgba(245, 176, 36, 0.42);
+  --ui-chrome-border-soft: rgba(232, 148, 12, 0.22);
+  /** 牌桌叠层（与 GameBoard 内联 background 引用） */
+  --ui-board-radial: rgba(255, 190, 100, 0.16);
+  --ui-board-linear-start: rgba(62, 44, 28, 0.82);
+  --ui-board-linear-end: rgba(26, 18, 12, 0.92);
+  /** 兼容旧变量：全局面板与页面底色改为暖深咖 */
+  --bg-color: #14100c;
+  --card-bg: #342a20;
   --text-color: #fff;
+
+  /**
+   * 主强调色：沿用 --primary-color 名称，指向暖橙金，
+   * 以便全局 var(--primary-color) 无需逐文件替换。
+   */
+  --primary-color: var(--ui-accent-gold-deep);
 }

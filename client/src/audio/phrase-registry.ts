@@ -1,6 +1,47 @@
 import type { CardPattern } from '../types'
+import { CARD_VALUES } from '@/utils/guandan-order'
 
-/** 与 play-announce / 服务端 judge 的 mainValue 一致 */
+/**
+ * 语音资源文件名使用自然点数键 3～17（与 CARD_VALUES 一致），
+ * 与服务端用于比牌的 pattern.mainValue（级牌放大后的值）分离。
+ */
+export function speechRankKey(pattern: CardPattern): number {
+  const { type, cards } = pattern
+  if (!cards?.length) return 3
+
+  const vals = cards.filter((c) => c.suit !== 'joker').map((c) => CARD_VALUES[c.rank])
+
+  if (type === 'single') {
+    return CARD_VALUES[cards[0].rank]
+  }
+
+  if (type === 'pair' || type === 'triple' || type === 'bomb') {
+    const counts = new Map<number, number>()
+    for (const v of vals) counts.set(v, (counts.get(v) || 0) + 1)
+    let bestV = 0
+    let bestCnt = 0
+    for (const [v, cnt] of counts) {
+      if (cnt > bestCnt || (cnt === bestCnt && v > bestV)) {
+        bestV = v
+        bestCnt = cnt
+      }
+    }
+    return bestV || 3
+  }
+
+  if (
+    type === 'straight' ||
+    type === 'straight_pair' ||
+    type === 'triple_run' ||
+    type === 'straight_bomb'
+  ) {
+    return vals.length ? Math.max(...vals) : 3
+  }
+
+  return vals[0] ?? 3
+}
+
+/** 用于短语朗读（键名由 speechRankKey 导出） */
 export function rankSpeech(mainValue: number): string {
   if (mainValue >= 100) return ''
   if (mainValue === 16) return '小王'
@@ -27,29 +68,30 @@ const MAIN_VALUES = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] as con
 
 /** 出牌短语：资源键 + 与生成脚本一致的朗读文案 */
 export function phraseForCardPattern(pattern: CardPattern): { key: string; text: string } {
-  const { type, mainValue, cards } = pattern
-  const r = rankSpeech(mainValue)
+  const { type, cards } = pattern
+  const mv = speechRankKey(pattern)
+  const r = rankSpeech(mv)
   const n = cards.length
 
   switch (type) {
     case 'single':
-      return { key: `single_mv_${mainValue}`, text: r ? `单张，${r}` : '单张' }
+      return { key: `single_mv_${mv}`, text: r ? `单张，${r}` : '单张' }
     case 'pair':
-      return { key: `pair_mv_${mainValue}`, text: r ? `对${r}` : '对子' }
+      return { key: `pair_mv_${mv}`, text: r ? `对${r}` : '对子' }
     case 'triple':
-      return { key: `triple_mv_${mainValue}`, text: r ? `三个${r}` : '三张' }
+      return { key: `triple_mv_${mv}`, text: r ? `三个${r}` : '三张' }
     case 'triple_with_pair':
       return { key: 'triple_with_pair', text: '三带二' }
     case 'straight':
-      return { key: `straight_mv_${mainValue}`, text: r ? `顺子，${r}` : '顺子' }
+      return { key: `straight_mv_${mv}`, text: r ? `顺子，${r}` : '顺子' }
     case 'straight_pair':
-      return { key: `straight_pair_mv_${mainValue}`, text: r ? `连对，${r}` : '连对' }
+      return { key: `straight_pair_mv_${mv}`, text: r ? `连对，${r}` : '连对' }
     case 'triple_run':
-      return { key: `triple_run_mv_${mainValue}`, text: r ? `钢板，${r}` : '钢板' }
+      return { key: `triple_run_mv_${mv}`, text: r ? `钢板，${r}` : '钢板' }
     case 'bomb':
-      return { key: `bomb_${n}_mv_${mainValue}`, text: r ? `${n}张炸弹，${r}` : `${n}张炸弹` }
+      return { key: `bomb_${n}_mv_${mv}`, text: r ? `${n}张炸弹，${r}` : `${n}张炸弹` }
     case 'straight_bomb':
-      return { key: `straight_bomb_mv_${mainValue}`, text: r ? `同花顺，${r}` : '同花顺' }
+      return { key: `straight_bomb_mv_${mv}`, text: r ? `同花顺，${r}` : '同花顺' }
     case 'joker_bomb':
       return { key: 'joker_bomb', text: '王炸' }
     default:

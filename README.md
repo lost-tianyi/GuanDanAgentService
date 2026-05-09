@@ -76,10 +76,18 @@ guandan/
 │   │   └── socket/
 │   └── package.json
 ├── docs/                   # PRD / HLD / LLD（教练 V1 设计文档）
+├── openspec/               # OpenSpec：现状规格 specs/、变更提案 changes/
 ├── scripts/                # 根目录辅助脚本（如 e2e 包装）
 ├── README.md
 └── package.json
 ```
+
+### OpenSpec（规格驱动）
+
+本项目引入 [OpenSpec](https://openspec.dev)：在 `openspec/specs/` 用能力规格描述「系统应如何表现」，在 `openspec/changes/` 跟踪每次功能变更的提案、设计与任务。详见 [`openspec/README.md`](openspec/README.md)。
+
+- **Cursor**：`.cursor/commands/` 提供 `/opsx:propose`、`/opsx:apply`、`/opsx:archive` 等工作流（初始化后需重启 IDE）。
+- **CLI**：仓库根目录执行 `npm install` 后可用 `npm run openspec -- <子命令>`，与官方 CLI 一致。
 
 ## 快速开始
 

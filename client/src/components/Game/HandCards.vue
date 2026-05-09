@@ -2,7 +2,7 @@
   <div class="hand-cards" :class="{ 'brush-selecting': brushSelecting }">
     <div
       v-for="(group, gi) in cardGroups"
-      :key="'rank-' + group[0].value + '-' + gi"
+      :key="'rank-' + group[0].rank + '-' + gi"
       class="rank-stack"
     >
       <div
@@ -48,17 +48,23 @@
 
 <script setup lang="ts">
 import { computed, ref, onUnmounted } from 'vue'
-import type { Card } from '@/types'
+import type { Card, CardRank } from '@/types'
 import { resumeAudioForSfx } from '@/audio/play-sfx'
 import { suitImageUrl } from '@/assets/ui/urls'
 import { gameConfig } from '@game-config'
 import JokerCardArt from '@/components/Game/JokerCardArt.vue'
+import { playStrength } from '@/utils/guandan-order'
 
-const props = defineProps<{
-  cards: Card[]
-  selectedCards: Card[]
-  selectable: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    cards: Card[]
+    selectedCards: Card[]
+    selectable: boolean
+    /** 当前级牌点数，用于掼蛋牌力排序 */
+    levelRank: CardRank
+  }>(),
+  { levelRank: '2' },
+)
 
 const emit = defineEmits<{
   (e: 'select', card: Card): void
@@ -186,11 +192,14 @@ const suitOrder = (s: Card['suit']) => {
 }
 
 /**
- * 先按点数从大到小横向分堆；同点数的牌再按花色排序，纵向叠牌。
+ * 先按掼蛋牌力从大到小横向分堆；同点数字面（rank）的牌一列，再按花色排序叠牌。
  */
 const cardGroups = computed(() => {
+  const lr = props.levelRank
   const sorted = [...props.cards].sort((a, b) => {
-    if (b.value !== a.value) return b.value - a.value
+    const pb = playStrength(b, lr)
+    const pa = playStrength(a, lr)
+    if (pb !== pa) return pb - pa
     const sd = suitOrder(a.suit) - suitOrder(b.suit)
     if (sd !== 0) return sd
     return a.id.localeCompare(b.id)
@@ -198,7 +207,7 @@ const cardGroups = computed(() => {
   const groups: Card[][] = []
   for (const card of sorted) {
     const last = groups[groups.length - 1]
-    if (last && last[0].value === card.value) {
+    if (last && last[0].rank === card.rank) {
       last.push(card)
     } else {
       groups.push([card])

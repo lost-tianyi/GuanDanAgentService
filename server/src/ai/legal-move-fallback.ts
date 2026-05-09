@@ -1,5 +1,6 @@
 import { analyzePattern, canBeat, type JudgeContext } from '../game/judge.js'
 import type { Card, CardPattern } from '../game/rules.js'
+import { playStrength } from '../game/rules.js'
 
 /** 组合 C(n,k)，用于穷举合法牌型（有迭代上限） */
 function* combinations<T>(arr: T[], k: number): Generator<T[]> {
@@ -57,7 +58,8 @@ export function findLegalBeatingPlay(hand: Card[], target: CardPattern, judgeCtx
 /** 首家领出：任一张合法单张即可（取点数最小的一张，减少浪费大牌） */
 export function findMinimalLegalLead(hand: Card[], judgeCtx: JudgeContext): Card[] | null {
   if (hand.length === 0) return null
-  const sorted = [...hand].sort((a, b) => a.value - b.value)
+  const lr = judgeCtx.levelRank
+  const sorted = [...hand].sort((a, b) => playStrength(a, lr) - playStrength(b, lr))
   for (const c of sorted) {
     if (analyzePattern([c], judgeCtx)) return [c]
   }

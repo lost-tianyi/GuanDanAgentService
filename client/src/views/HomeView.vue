@@ -1,5 +1,5 @@
 <template>
-  <div class="home">
+  <div class="home" :style="homeThemeVars">
     <div class="logo">
       <h1>惯蛋游戏</h1>
       <p class="subtitle">Guandan Card Game</p>
@@ -63,11 +63,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ui } from '@/assets/ui/urls'
 
 const router = useRouter()
+
+const homeThemeVars = computed(() => ({
+  '--home-menu-wood': `url(${ui.themePanelHeaderWood})`,
+}))
 
 const startLocal = ref(false)
 const showCreateRoom = ref(false)
@@ -126,7 +130,7 @@ const closeModals = () => {
 
 .logo h1 {
   font-size: 48px;
-  color: #ffd700;
+  color: var(--ui-accent-title);
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
@@ -144,7 +148,6 @@ const closeModals = () => {
 }
 
 .menu-card {
-  background: var(--card-bg);
   border-radius: 16px;
   padding: 30px;
   width: 200px;
@@ -152,12 +155,17 @@ const closeModals = () => {
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
   border: 2px solid transparent;
+  background-color: var(--card-bg);
+  background-image: linear-gradient(165deg, rgba(48, 36, 26, 0.88) 0%, rgba(28, 22, 18, 0.94) 100%), var(--home-menu-wood);
+  background-size: cover, 220% auto;
+  background-position: center, 50% 30%;
+  background-repeat: no-repeat, no-repeat;
 }
 
 .menu-card:hover {
   transform: translateY(-5px);
-  border-color: var(--primary-color);
-  box-shadow: 0 10px 30px rgba(74, 144, 217, 0.3);
+  border-color: var(--ui-accent-gold);
+  box-shadow: 0 12px 28px rgba(232, 148, 12, 0.35);
 }
 
 .menu-card .icon {
@@ -205,7 +213,8 @@ const closeModals = () => {
 
 .difficulty-buttons button.active,
 .difficulty-buttons button:hover {
-  background: var(--primary-color);
+  background: linear-gradient(180deg, var(--ui-accent-gold) 0%, var(--ui-accent-gold-deep) 100%);
+  box-shadow: 0 2px 10px rgba(232, 148, 12, 0.4);
 }
 
 .modal {
@@ -255,11 +264,15 @@ const closeModals = () => {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  background: var(--primary-color);
+  background: linear-gradient(180deg, var(--ui-accent-gold) 0%, var(--ui-accent-gold-deep) 100%);
   color: #fff;
+  box-shadow: 0 2px 8px rgba(232, 148, 12, 0.35);
 }
 
 .modal-buttons button.cancel {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(45, 35, 26, 0.85);
+  border: 1px solid var(--ui-chrome-border-soft);
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.88);
 }
 </style>

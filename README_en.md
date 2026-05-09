@@ -10,6 +10,10 @@ Based on the current PRD/HLD/LLD (`guandan-coach-v1` docs), V1 focuses on:
 - Guandan Coach: recommended move + reasoning.
 - Coach feature is not enabled for online PvP (`mode=online`) in V1.
 
+## 1.1) OpenSpec
+
+This repo uses [OpenSpec](https://openspec.dev): capability specs live under `openspec/specs/` and change proposals under `openspec/changes/`. After `npm install` at the repo root, run `npm run openspec -- --help`. Cursor slash commands are under `.cursor/commands/` (restart IDE after setup). See `openspec/README.md`.
+
 ## 2) Key Features
 - Rule engine on server side (`analyzePattern`, `canBeat`, etc.).
 - Turn orchestration (play/pass, trick transitions, tribute flow).

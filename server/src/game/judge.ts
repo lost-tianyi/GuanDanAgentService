@@ -1,13 +1,15 @@
 import type { Card, CardPattern, CardPatternType, CardRank } from './rules.js'
-import { CARD_VALUES } from './rules.js'
+import {
+  isFengRenPei,
+  playStrength,
+  rankPlayStrength,
+  straightEndNumberToRank,
+  valueKeyToRank,
+} from './rules.js'
 
 /** 判牌上下文：逢人配 = 与当前级牌同点数的红桃 */
 export interface JudgeContext {
   levelRank: CardRank
-}
-
-function isFengRenPei(card: Card, levelRank: CardRank): boolean {
-  return card.suit === 'hearts' && card.rank === levelRank
 }
 
 function partitionWild(cards: Card[], levelRank: CardRank): { wild: Card[]; real: Card[] } {
@@ -135,8 +137,8 @@ function tripleWithPairBrute(counts: Map<number, number>, wild: number): { main:
   return null
 }
 
-function sortedUnion(cards: Card[]): Card[] {
-  return [...cards].sort((a, b) => a.value - b.value)
+function sortedUnion(cards: Card[], levelRank: CardRank): Card[] {
+  return [...cards].sort((a, b) => playStrength(a, levelRank) - playStrength(b, levelRank))
 }
 
 function straightBombTop(cards: Card[], wild: Card[], reals: Card[]): number | null {
@@ -158,7 +160,7 @@ export function analyzePattern(cards: Card[], ctx?: JudgeContext): CardPattern |
 
   const levelRank = ctx?.levelRank ?? ('3' as CardRank)
   const { wild, real } = partitionWild(cards, levelRank)
-  const sorted = sortedUnion(cards)
+  const sorted = sortedUnion(cards, levelRank)
 
   if (cards.length === 4 && cards.every((c) => c.suit === 'joker')) {
     return { type: 'joker_bomb', cards: sorted, mainValue: 100 }
@@ -172,31 +174,49 @@ export function analyzePattern(cards: Card[], ctx?: JudgeContext): CardPattern |
   /* 先判顺子/同花顺/三带二等，再判炸弹，避免与「顺子≠炸弹」的惯蛋常识冲突（同点炸弹仍会在后文命中） */
   if (n >= 5 && realNoJoker.length + wild.length === n) {
     const sb = straightBombTop(cards, wild, realNoJoker)
-    if (sb !== null) return { type: 'straight_bomb', cards: sorted, mainValue: sb }
+    if (sb !== null) {
+      const rr = straightEndNumberToRank(sb)
+      return { type: 'straight_bomb', cards: sorted, mainValue: rankPlayStrength(rr, levelRank) }
+    }
   }
 
   if (n === 6) {
     const tr = tripleRunTopValue(countsNoJokers, wildCount)
-    if (tr !== null) return { type: 'triple_run', cards: sorted, mainValue: tr }
+    if (tr !== null) {
+      const rr = straightEndNumberToRank(tr)
+      return { type: 'triple_run', cards: sorted, mainValue: rankPlayStrength(rr, levelRank) }
+    }
     const sp = straightPairTopValue(countsNoJokers, wildCount)
-    if (sp !== null) return { type: 'straight_pair', cards: sorted, mainValue: sp }
+    if (sp !== null) {
+      const rr = straightEndNumberToRank(sp)
+      return { type: 'straight_pair', cards: sorted, mainValue: rankPlayStrength(rr, levelRank) }
+    }
   }
 
   if (n >= 5) {
     if (!realNoJoker.some((c) => c.rank === '2' || c.suit === 'joker')) {
       const st = straightTopValue(countsNoJokers, wildCount, n)
-      if (st !== null) return { type: 'straight', cards: sorted, mainValue: st }
+      if (st !== null) {
+        const rr = straightEndNumberToRank(st)
+        return { type: 'straight', cards: sorted, mainValue: rankPlayStrength(rr, levelRank) }
+      }
     }
   }
 
   if (n === 5) {
     const tw = tripleWithPairBrute(countsNoJokers, wildCount)
-    if (tw !== null) return { type: 'triple_with_pair', cards: sorted, mainValue: tw.main }
+    if (tw !== null) {
+      const mr = valueKeyToRank(tw.main)
+      if (mr) return { type: 'triple_with_pair', cards: sorted, mainValue: rankPlayStrength(mr, levelRank) }
+    }
   }
 
   if (n >= 4 && n <= 10) {
     const bm = bombMainValue(countsNoJokers, wildCount, n)
-    if (bm !== null) return { type: 'bomb', cards: sorted, mainValue: bm }
+    if (bm !== null) {
+      const mr = valueKeyToRank(bm)
+      if (mr) return { type: 'bomb', cards: sorted, mainValue: rankPlayStrength(mr, levelRank) }
+    }
   }
 
   if (n === 3) {
@@ -207,7 +227,10 @@ export function analyzePattern(cards: Card[], ctx?: JudgeContext): CardPattern |
         for (const [r2, c2] of countsNoJokers) {
           if (r2 !== rv) other += c2
         }
-        if (other === 0 && need === wildCount) return { type: 'triple', cards: sorted, mainValue: rv }
+        if (other === 0 && need === wildCount) {
+          const mr = valueKeyToRank(rv)
+          if (mr) return { type: 'triple', cards: sorted, mainValue: rankPlayStrength(mr, levelRank) }
+        }
       }
     }
   }
@@ -220,19 +243,24 @@ export function analyzePattern(cards: Card[], ctx?: JudgeContext): CardPattern |
         for (const [r2, c2] of countsNoJokers) {
           if (r2 !== rv) other += c2
         }
-        if (other === 0 && need === wildCount) return { type: 'pair', cards: sorted, mainValue: rv }
+        if (other === 0 && need === wildCount) {
+          const mr = valueKeyToRank(rv)
+          if (mr) return { type: 'pair', cards: sorted, mainValue: rankPlayStrength(mr, levelRank) }
+        }
       }
     }
     if (wildCount === 2 && realNoJoker.length === 0) {
-      return { type: 'pair', cards: sorted, mainValue: CARD_VALUES[levelRank] }
+      return { type: 'pair', cards: sorted, mainValue: rankPlayStrength(levelRank, levelRank) }
     }
   }
 
   if (n === 1) {
-    if (wildCount === 1) return null
+    if (wildCount === 1 && wild[0]) {
+      return { type: 'single', cards: sorted, mainValue: playStrength(wild[0], levelRank) }
+    }
     const only = real[0]
     if (!only) return null
-    return { type: 'single', cards: sorted, mainValue: only.value }
+    return { type: 'single', cards: sorted, mainValue: playStrength(only, levelRank) }
   }
 
   return null

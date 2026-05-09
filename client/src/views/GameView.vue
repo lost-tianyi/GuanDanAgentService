@@ -1,12 +1,22 @@
 <template>
-  <div class="game-container">
+  <div class="game-container" :style="themeCssVars">
     <div class="game-header">
       <div class="room-info">
-        <span>房间: {{ displayRoomId }}</span>
-        <span>等级: {{ currentLevel }}</span>
-        <span>级牌: {{ levelRankLabel }}</span>
-        <span>回合: {{ roundNumber }}</span>
-        <span v-if="store.gameState.status === 'tribute'" class="phase-tag">进贡/还牌</span>
+        <span class="stat-chip"
+          ><span class="stat-chip__k">房间</span><span class="stat-chip__v">{{ displayRoomId }}</span></span
+        >
+        <span class="stat-chip"
+          ><span class="stat-chip__k">等级</span><span class="stat-chip__v">{{ currentLevel }}</span></span
+        >
+        <span class="stat-chip"
+          ><span class="stat-chip__k">级牌</span><span class="stat-chip__v">{{ levelRankLabel }}</span></span
+        >
+        <span class="stat-chip"
+          ><span class="stat-chip__k">回合</span><span class="stat-chip__v">{{ roundNumber }}</span></span
+        >
+        <span v-if="store.gameState.status === 'tribute'" class="stat-chip stat-chip--phase"
+          ><span class="stat-chip__v">进贡/还牌</span></span
+        >
       </div>
       <button type="button" class="back-btn" @click="goHome">
         <img class="back-btn__icon" :src="ui.iconBack" alt="" width="18" height="18" draggable="false" />
@@ -181,6 +191,11 @@ const levelRankLabel = computed(() => {
 })
 const roundNumber = computed(() => store.gameState.roundNumber)
 const displayRoomId = computed(() => store.roomId || routeRoomId.value)
+
+const themeCssVars = computed(() => ({
+  '--ui-theme-wood': `url(${ui.themePanelHeaderWood})`,
+  '--ui-theme-btn-gloss': `url(${ui.themeBtnPrimaryGloss})`,
+}))
 
 const canPlay = computed(() => {
   if (store.gameState.status !== 'playing' || !store.isMyTurn) return false
@@ -387,16 +402,65 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
-  background: var(--card-bg);
+  padding: 12px 18px;
   border-radius: 12px;
   margin-bottom: 10px;
+  border: 1px solid var(--ui-chrome-border-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 200, 120, 0.12);
+  background-image: var(--ui-theme-wood), linear-gradient(180deg, rgba(55, 42, 30, 0.92) 0%, rgba(38, 28, 20, 0.97) 100%);
+  background-size: auto 140%, 100% 100%;
+  background-position: top center, center;
+  background-repeat: repeat-x, no-repeat;
 }
 
 .room-info {
   display: flex;
-  gap: 20px;
-  color: #aaa;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  color: rgba(255, 236, 210, 0.88);
+}
+
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  min-height: 30px;
+  font-size: 13px;
+  line-height: 1.2;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background:
+    linear-gradient(180deg, rgba(38, 28, 20, 0.94) 0%, rgba(22, 16, 12, 0.97) 100%) padding-box,
+    linear-gradient(145deg, #fff1c8 0%, #e8b535 38%, #a97212 72%, #6b4810 100%) border-box;
+  background-clip: padding-box, border-box;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 230, 200, 0.14),
+    0 2px 8px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
+.stat-chip--phase {
+  background:
+    linear-gradient(180deg, rgba(48, 36, 22, 0.94) 0%, rgba(32, 24, 14, 0.97) 100%) padding-box,
+    linear-gradient(145deg, #ffe8a8 0%, #f0a030 45%, #c97808 100%) border-box;
+  background-clip: padding-box, border-box;
+}
+
+.stat-chip__k {
+  opacity: 0.82;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.stat-chip__v {
+  font-weight: 700;
+  color: rgba(255, 252, 245, 0.98);
+}
+
+.stat-chip--phase .stat-chip__v {
+  color: var(--warning-color, #ffc53d);
 }
 
 .back-btn {
@@ -404,12 +468,17 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  border: 1px solid var(--ui-chrome-border-soft);
+  border-radius: 8px;
+  background: rgba(30, 22, 16, 0.65);
+  color: rgba(255, 245, 230, 0.95);
   cursor: pointer;
   font-size: 14px;
+}
+
+.back-btn:hover {
+  border-color: var(--ui-chrome-border);
+  background: rgba(45, 35, 26, 0.85);
 }
 
 .back-btn__icon {
@@ -418,13 +487,11 @@ onMounted(async () => {
 }
 
 .game-area {
-  flex: 1;
+  flex: 1 1 0;
   display: flex;
+  flex-direction: column;
   min-height: 0;
-}
-
-.phase-tag {
-  color: var(--warning-color, #faad14);
+  width: 100%;
 }
 
 .tribute-hint {
@@ -473,18 +540,40 @@ onMounted(async () => {
 }
 
 .control-btn.play {
-  background: var(--success-color);
-  color: #fff;
+  position: relative;
+  overflow: hidden;
+  background-image: var(--ui-theme-btn-gloss), linear-gradient(180deg, #fac542 0%, var(--ui-accent-gold-deep) 52%, #c97106 100%);
+  background-size: cover, 100% 100%;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  color: #1a1208;
+  font-weight: 700;
+  border: 1px solid rgba(255, 220, 140, 0.45);
+  box-shadow: 0 4px 14px rgba(232, 148, 12, 0.45);
+}
+
+.control-btn.play:hover:not(:disabled) {
+  filter: brightness(1.05);
 }
 
 .control-btn.play:disabled {
-  background: rgba(82, 196, 26, 0.3);
+  background-image: none;
+  background-color: rgba(120, 90, 40, 0.45);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.45);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
 .control-btn.pass {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(38, 28, 20, 0.75);
+  color: rgba(255, 248, 238, 0.92);
+  border: 1px solid var(--ui-chrome-border-soft);
+}
+
+.control-btn.pass:hover:not(:disabled) {
+  background: rgba(52, 40, 30, 0.92);
+  border-color: var(--ui-chrome-border);
 }
 
 .control-btn.pass:disabled {
@@ -495,22 +584,33 @@ onMounted(async () => {
 .control-btn.auto-play {
   padding: 9px 26px;
   font-size: 14px;
-  background: rgba(114, 46, 209, 0.55);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(48, 36, 26, 0.88);
+  color: rgba(255, 245, 230, 0.9);
+  border: 1px solid var(--ui-chrome-border-soft);
 }
 
 .control-btn.auto-play:hover {
-  background: rgba(114, 46, 209, 0.72);
+  background: rgba(58, 44, 32, 0.95);
+  border-color: var(--ui-chrome-border);
 }
 
 .control-btn.tribute {
-  background: #d48806;
-  color: #fff;
+  background-image: var(--ui-theme-btn-gloss), linear-gradient(180deg, var(--ui-accent-gold) 0%, var(--ui-accent-gold-deep) 100%);
+  background-size: cover, 100% 100%;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  color: #1a1208;
+  font-weight: 700;
+  border: 1px solid rgba(255, 210, 120, 0.4);
+  box-shadow: 0 3px 12px rgba(232, 148, 12, 0.38);
 }
 
 .control-btn.tribute:disabled {
-  background: rgba(212, 136, 6, 0.35);
+  background-image: none;
+  background-color: rgba(120, 90, 40, 0.4);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.45);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
@@ -545,13 +645,13 @@ onMounted(async () => {
 }
 
 .coach-switch-btn.active {
-  background: rgba(74, 144, 217, 0.5);
+  background: rgba(232, 148, 12, 0.35);
   color: #fff;
-  border-color: rgba(74, 144, 217, 0.55);
+  border-color: var(--ui-accent-gold);
 }
 
 .coach-switch-btn:focus-visible {
-  outline: 2px solid rgba(74, 144, 217, 0.8);
+  outline: 2px solid var(--ui-accent-gold);
   outline-offset: 2px;
 }
 
@@ -581,8 +681,8 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: linear-gradient(180deg, #1e2740 0%, #16213e 100%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, #3a2e22 0%, #261c14 100%);
+  border: 1px solid var(--ui-chrome-border-soft);
   border-radius: 16px 16px 0 0;
   box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5);
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -614,15 +714,17 @@ onMounted(async () => {
 .coach-float-accept {
   padding: 6px 14px;
   font-size: 13px;
-  border: none;
+  border: 1px solid rgba(255, 210, 120, 0.35);
   border-radius: 8px;
-  background: rgba(82, 196, 26, 0.88);
-  color: #fff;
+  background: linear-gradient(180deg, var(--ui-accent-gold) 0%, var(--ui-accent-gold-deep) 100%);
+  color: #1a1208;
+  font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(232, 148, 12, 0.35);
 }
 
 .coach-float-accept:hover:not(:disabled) {
-  background: rgba(98, 212, 42, 1);
+  filter: brightness(1.06);
 }
 
 .coach-float-accept:disabled {

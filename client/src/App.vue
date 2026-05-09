@@ -67,7 +67,7 @@ onMounted(() => {
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: linear-gradient(145deg, #1e1610 0%, #2a1f14 42%, #141008 100%);
   min-height: 100vh;
   color: #fff;
 }
@@ -79,9 +79,9 @@ body {
   z-index: 9999;
   width: 40px;
   height: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid var(--ui-chrome-border);
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(40, 28, 18, 0.72);
   color: inherit;
   cursor: pointer;
   display: flex;
@@ -93,7 +93,8 @@ body {
 }
 
 .voice-toggle:hover {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(55, 38, 22, 0.88);
+  border-color: var(--ui-accent-gold);
 }
 
 .voice-toggle__glyph {
@@ -108,9 +109,9 @@ body {
   z-index: 9999;
   width: 40px;
   height: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid var(--ui-chrome-border);
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(40, 28, 18, 0.72);
   color: inherit;
   font-size: 18px;
   line-height: 1;
@@ -118,7 +119,8 @@ body {
 }
 
 .bgm-toggle:hover {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(55, 38, 22, 0.88);
+  border-color: var(--ui-accent-gold);
 }
 
 .bgm-toggle__icon {

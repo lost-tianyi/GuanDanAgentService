@@ -18,6 +18,11 @@ declare module '*.wav' {
   export default src
 }
 
+declare module '*.png' {
+  const src: string
+  export default src
+}
+
 interface ImportMetaEnv {
   /** 覆盖 `gameConfig.client.socketUrl`（可选） */
   readonly VITE_SOCKET_URL?: string

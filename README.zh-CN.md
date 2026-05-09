@@ -10,6 +10,10 @@ Guandan 是一个前后端分离的掼蛋项目，包含：
 - 增加“教练提示（Guandan Coach）”：推荐出牌 + 解释理由。
 - 教练在 `mode=online` 下默认不开放。
 
+## 1.1) OpenSpec
+
+仓库已集成 [OpenSpec](https://openspec.dev)：`openspec/specs/` 为能力规格，`openspec/changes/` 为变更提案；根目录 `npm install` 后可使用 `npm run openspec`。Cursor 侧见 `.cursor/commands/`（`/opsx:*`），详见 `openspec/README.md`。
+
 ## 2) 核心能力
 - 规则引擎：服务端统一执行 `analyzePattern` / `canBeat` 等判定。
 - 回合系统：处理出牌、不出、轮转、开新圈、进贡等流程。
