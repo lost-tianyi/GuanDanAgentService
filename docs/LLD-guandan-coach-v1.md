@@ -12,8 +12,8 @@
 - 人人对战教练（V3）
 
 关联文档：
-- `guandan/PRD-guandan-coach-v1.md`
-- `guandan/HLD-guandan-coach-v1.md`
+- `docs/PRD-guandan-coach-v1.md`
+- `docs/HLD-guandan-coach-v1.md`
 
 ## 2. 代码改动清单（目标文件）
 

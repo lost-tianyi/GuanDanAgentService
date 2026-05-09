@@ -57,23 +57,26 @@
 ```
 guandan/
 ├── client/                 # Vue 前端
+│   ├── e2e/                # Playwright 端到端（需手动起服务）
+│   ├── scripts/            # 短语音频生成等工具脚本
 │   ├── src/
-│   │   ├── components/    # 组件
-│   │   │   ├── Game/      # 游戏相关
-│   │   │   ├── Chat/      # 聊天相关
-│   │   │   └── UI/        # 通用 UI
-│   │   ├── composables/   # 组合式 API
-│   │   ├── stores/        # Pinia 状态管理
-│   │   ├── types/         # TypeScript 类型
-│   │   ├── utils/         # 工具函数
-│   │   └── views/         # 页面视图
+│   │   ├── assets/         # 静态资源（ui、audio/wav 等）
+│   │   ├── audio/          # 播报与音效逻辑
+│   │   ├── components/     # 组件（Game / Chat 等）
+│   │   ├── composables/
+│   │   ├── stores/
+│   │   ├── types/
+│   │   └── views/
 │   └── package.json
-├── server/                # Node.js 后端
+├── server/
 │   ├── src/
-│   │   ├── game/         # 游戏逻辑
-│   │   ├── ai/           # AI 引擎
-│   │   └── socket/       # WebSocket 处理
+│   │   ├── game/           # 规则与状态机
+│   │   ├── ai/
+│   │   ├── coach/
+│   │   └── socket/
 │   └── package.json
+├── docs/                   # PRD / HLD / LLD（教练 V1 设计文档）
+├── scripts/                # 根目录辅助脚本（如 e2e 包装）
 ├── README.md
 └── package.json
 ```
@@ -113,6 +116,16 @@ npm run build
 
 # 启动生产服务器
 npm run start
+```
+
+### 测试
+
+```bash
+# 服务端单元测试（Vitest）
+npm run test
+
+# 前端 E2E（需先启动 server:dev 与 client:dev）
+cd client && npm run test:e2e
 ```
 
 ## 功能说明

@@ -21,9 +21,9 @@ Based on the current PRD/HLD/LLD (`guandan-coach-v1` docs), V1 focuses on:
   - Returns `recommended + reason`; falls back to template explanation when LLM fails.
 
 ## 3) Product/Design Docs
-- PRD: `guandan/PRD-guandan-coach-v1.md`
-- HLD: `guandan/HLD-guandan-coach-v1.md`
-- LLD: `guandan/LLD-guandan-coach-v1.md`
+- PRD: `docs/PRD-guandan-coach-v1.md`
+- HLD: `docs/HLD-guandan-coach-v1.md`
+- LLD: `docs/LLD-guandan-coach-v1.md`
 
 ## 4) Requirements
 - Node.js 18+ (20+ recommended)

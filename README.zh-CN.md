@@ -21,9 +21,9 @@ Guandan 是一个前后端分离的掼蛋项目，包含：
   - 输出 `recommended + reason`，LLM 失败时回退模板解释。
 
 ## 3) 文档索引（PRD / HLD / LLD）
-- PRD: `guandan/PRD-guandan-coach-v1.md`
-- HLD: `guandan/HLD-guandan-coach-v1.md`
-- LLD: `guandan/LLD-guandan-coach-v1.md`
+- PRD: `docs/PRD-guandan-coach-v1.md`
+- HLD: `docs/HLD-guandan-coach-v1.md`
+- LLD: `docs/LLD-guandan-coach-v1.md`
 
 ## 4) 运行环境
 - Node.js 18+（建议 20+）
