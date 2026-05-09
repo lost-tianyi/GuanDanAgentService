@@ -9,6 +9,7 @@ import type {
   CoachHintMode,
 } from '@/types'
 import { gameConfig } from '@game-config'
+import { announceCardsPlayed, announcePlayerPassed } from '@/audio/play-announce'
 
 let socket: Socket | null = null
 
@@ -32,6 +33,7 @@ export function useSocket() {
 
     socket.on('disconnect', () => {
       connected.value = false
+      store.resetAutoPlay()
       console.log('Disconnected from server')
     })
 
@@ -42,10 +44,12 @@ export function useSocket() {
     socket.on('cards-played', ({ state }) => {
       store.setGameState(state)
       store.clearSelection()
+      announceCardsPlayed(state)
     })
 
     socket.on('player-passed', ({ state }) => {
       store.setGameState(state)
+      announcePlayerPassed(state)
     })
 
     socket.on('tribute-updated', ({ state }) => {
@@ -107,6 +111,12 @@ export function useSocket() {
       store.applyCoachHintEnd(payload)
     })
 
+    socket.on('auto-play-changed', ({ playerId, enabled }: { playerId: string; enabled: boolean }) => {
+      if (playerId === store.playerId) {
+        store.setAutoPlay(enabled)
+      }
+    })
+
     return socket
   }
 
@@ -115,6 +125,7 @@ export function useSocket() {
       socket?.emit('create-room', { roomId, playerName, aiDifficulty, mode }, (response: any) => {
         if (response.success) {
           store.setRoomInfo(roomId, playerName, response.playerId || socket?.id || '', mode)
+          store.syncAutoPlayFromEntrustedIds(response.entrustedPlayerIds)
         }
         resolve(response)
       })
@@ -127,6 +138,7 @@ export function useSocket() {
         if (response.success) {
           store.setRoomInfo(roomId, playerName, response.playerId || socket?.id || '', 'online')
           store.setGameState(response.state)
+          store.syncAutoPlayFromEntrustedIds(response.entrustedPlayerIds)
         }
         resolve(response)
       })
@@ -213,6 +225,24 @@ export function useSocket() {
     socket?.emit('send-emoji', { roomId, emoji })
   }
 
+  function setAutoPlay(roomId: string, enabled: boolean) {
+    return new Promise<any>((resolve) => {
+      socket?.emit('set-auto-play', { roomId, enabled }, (response: any) => {
+        if (!response?.success) {
+          store.addMessage({
+            id: Date.now().toString(),
+            playerId: 'system',
+            playerName: '系统',
+            content: response?.message || '托管设置失败',
+            type: 'system',
+            timestamp: Date.now(),
+          })
+        }
+        resolve(response)
+      })
+    })
+  }
+
   function disconnect() {
     socket?.disconnect()
     socket = null
@@ -231,6 +261,7 @@ export function useSocket() {
     requestCoachHint,
     sendMessage,
     sendEmoji,
+    setAutoPlay,
     disconnect
   }
 }

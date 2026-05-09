@@ -59,6 +59,10 @@
  * │ 四、其它（AI 出牌等模块，非本文件组装的 gameConfig）                        │
  * └──────────────────────────────────────────────────────────────────────────┘
  *
+ * AI_RESPOND_DELAY_AFTER_HUMAN_MS
+ *   中文：人类行动后、轮到 AI 时，延迟多少毫秒再执行 AI 回合（默认见 server.defaults）。
+ *   用于与客户端播报节奏对齐。
+ *
  * ANTHROPIC_API_KEY
  *   中文：若使用 Anthropic 相关封装时会读取（见 `ai/llm.ts`）。
  *
@@ -84,6 +88,7 @@ export interface ResolvedServerGameConfig {
   httpPort: number
   aiPlayDelayMs: number
   aiPassDelayMs: number
+  aiRespondDelayAfterHumanMs: number
   tributeStepDelayMs: number
   coachReasonTimeoutMs: number
   /** 解析后的教练用模型 ID */
@@ -121,6 +126,10 @@ export function buildResolvedServerConfig(
     httpPort: parsePositiveInt(process.env.PORT, defaults.httpPort),
     aiPlayDelayMs: defaults.aiPlayDelayMs,
     aiPassDelayMs: defaults.aiPassDelayMs,
+    aiRespondDelayAfterHumanMs: parsePositiveInt(
+      process.env.AI_RESPOND_DELAY_AFTER_HUMAN_MS,
+      defaults.aiRespondDelayAfterHumanMs,
+    ),
     tributeStepDelayMs: defaults.tributeStepDelayMs,
     coachReasonTimeoutMs,
     coachLlmModel,

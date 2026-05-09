@@ -21,6 +21,8 @@ interface Room {
   sockets: Map<string, string>
   aiDifficulty: AIDifficulty
   mode: 'local' | 'online'
+  /** 真人玩家 id：开启「托管」后由服务端按 AI 逻辑代打 */
+  entrustedPlayers: Set<string>
 }
 
 const rooms = new Map<string, Room>()
@@ -82,6 +84,7 @@ export function setupSocket(io: HTTPServer) {
         sockets: new Map(),
         aiDifficulty: aiDifficulty || 'normal',
         mode: mode === 'online' ? 'online' : 'local',
+        entrustedPlayers: new Set(),
       }
 
       game.addPlayer(socket.id, playerName, false)
@@ -90,7 +93,7 @@ export function setupSocket(io: HTTPServer) {
       socket.join(roomId)
       rooms.set(roomId, room)
 
-      callback({ success: true, roomId, playerId: socket.id })
+      callback({ success: true, roomId, playerId: socket.id, entrustedPlayerIds: [] })
       console.log(`房间创建: ${roomId}`)
     })
 
@@ -114,8 +117,45 @@ export function setupSocket(io: HTTPServer) {
       const state = room.game.getState()
       socketServer.to(roomId).emit('player-joined', { playerId: socket.id, playerName })
 
-      callback({ success: true, roomId, state, playerId: socket.id })
+      callback({
+        success: true,
+        roomId,
+        state,
+        playerId: socket.id,
+        entrustedPlayerIds: [...room.entrustedPlayers],
+      })
       console.log(`玩家加入: ${playerName} 加入房间 ${roomId}`)
+    })
+
+    socket.on('set-auto-play', ({ roomId, enabled }: { roomId: string; enabled: boolean }, callback) => {
+      const respond = (payload: Record<string, unknown>) => {
+        callback?.(payload)
+      }
+      const room = rooms.get(roomId)
+      if (!room) {
+        respond({ success: false, message: '房间不存在' })
+        return
+      }
+      const player = room.game.getState().players.find((p) => p.id === socket.id)
+      if (!player) {
+        respond({ success: false, message: '你不在此房间' })
+        return
+      }
+      if (player.isAI) {
+        respond({ success: false, message: 'AI 无需托管' })
+        return
+      }
+
+      if (enabled) {
+        room.entrustedPlayers.add(socket.id)
+      } else {
+        room.entrustedPlayers.delete(socket.id)
+      }
+
+      socketServer.to(roomId).emit('auto-play-changed', { playerId: socket.id, enabled })
+      respond({ success: true, enabled })
+
+      triggerBotTurnIfNeeded(room, roomId, socketServer)
     })
 
     socket.on('start-game', ({ roomId }, callback) => {
@@ -139,7 +179,7 @@ export function setupSocket(io: HTTPServer) {
       socketServer.to(roomId).emit('game-started', state)
       callback({ success: true, state })
 
-      handleAITurn(roomId, socketServer)
+      scheduleHandleAITurnAfterHuman(roomId, socketServer)
       console.log(`游戏开始: ${roomId}`)
     })
 
@@ -167,7 +207,7 @@ export function setupSocket(io: HTTPServer) {
           })
         }
 
-        handleAITurn(roomId, socketServer)
+        scheduleHandleAITurnAfterHuman(roomId, socketServer)
       }
 
       callback(result)
@@ -186,7 +226,7 @@ export function setupSocket(io: HTTPServer) {
         const state = room.game.getState()
         socketServer.to(roomId).emit('player-passed', { playerId: socket.id, state })
 
-        handleAITurn(roomId, socketServer)
+        scheduleHandleAITurnAfterHuman(roomId, socketServer)
       }
 
       callback(result)
@@ -204,7 +244,7 @@ export function setupSocket(io: HTTPServer) {
       if (result.success) {
         const state = room.game.getState()
         socketServer.to(roomId).emit('tribute-updated', { state })
-        handleAITurn(roomId, socketServer)
+        scheduleHandleAITurnAfterHuman(roomId, socketServer)
       }
 
       callback?.(result)
@@ -388,6 +428,7 @@ export function setupSocket(io: HTTPServer) {
 
       for (const [roomId, room] of rooms) {
         if (room.sockets.has(socket.id)) {
+          room.entrustedPlayers.delete(socket.id)
           room.game.removePlayer(socket.id)
           room.sockets.delete(socket.id)
 
@@ -404,6 +445,50 @@ export function setupSocket(io: HTTPServer) {
   })
 
   return socketServer
+}
+
+function triggerBotTurnIfNeeded(room: Room, roomId: string, io: SocketServer) {
+  const state = room.game.getState()
+  if (state.status === 'playing') {
+    const p = state.players[state.currentPlayerIndex]
+    if (p && !p.isAI && room.entrustedPlayers.has(p.id)) {
+      void handleAITurn(roomId, io)
+    }
+    return
+  }
+  if (state.status === 'tribute') {
+    const step = room.game.getCurrentTributeStep()
+    if (!step) return
+    const p = state.players[step.from]
+    if (p && !p.isAI && room.entrustedPlayers.has(p.id)) {
+      void handleAITurn(roomId, io)
+    }
+  }
+}
+
+function shouldAiActNext(room: Room): boolean {
+  const state = room.game.getState()
+  if (state.status === 'tribute') {
+    const step = room.game.getCurrentTributeStep()
+    if (!step) return false
+    const p = state.players[step.from]
+    return Boolean(p && (p.isAI || room.entrustedPlayers.has(p.id)))
+  }
+  if (state.status !== 'playing') return false
+  const p = state.players[state.currentPlayerIndex]
+  return Boolean(p && (p.isAI || room.entrustedPlayers.has(p.id)))
+}
+
+/** 人类出牌/过/进贡提交等广播后：若下一步轮到 AI，则延迟再驱动，便于客户端语音播完 */
+function scheduleHandleAITurnAfterHuman(roomId: string, io: SocketServer) {
+  const room = rooms.get(roomId)
+  if (!room) return
+  if (!shouldAiActNext(room)) return
+
+  setTimeout(
+    () => void handleAITurn(roomId, io),
+    gameConfig.server.aiRespondDelayAfterHumanMs,
+  )
 }
 
 async function handleAITurn(roomId: string, io: SocketServer) {
@@ -426,8 +511,9 @@ async function handleAITurn(roomId: string, io: SocketServer) {
         return
       }
       const actor = st.players[step.from]
-      if (!actor.isAI) return
-      room.game.autoAdvanceTributeStep()
+      const allowAuto = actor.isAI || room.entrustedPlayers.has(actor.id)
+      if (!allowAuto) return
+      room.game.autoAdvanceTributeStep(actor.isAI ? undefined : actor.id)
       const newState = room.game.getState()
       io.to(roomId).emit('tribute-updated', { state: newState })
       setTimeout(runTribute, gameConfig.server.tributeStepDelayMs)
@@ -439,7 +525,8 @@ async function handleAITurn(roomId: string, io: SocketServer) {
   if (state.status !== 'playing') return
 
   const currentPlayer = state.players[state.currentPlayerIndex]
-  if (!currentPlayer?.isAI) return
+  if (!currentPlayer) return
+  if (!currentPlayer.isAI && !room.entrustedPlayers.has(currentPlayer.id)) return
 
   await executeAiPlayTurn(room, roomId, io)
 }
@@ -453,9 +540,17 @@ async function executeAiPlayTurn(room: Room, roomId: string, io: SocketServer) {
   let st = game.getState()
   const turnIndex = st.currentPlayerIndex
   const current = st.players[turnIndex]
-  if (!current?.isAI) return
+  if (!current) return
+  if (!current.isAI && !room.entrustedPlayers.has(current.id)) return
 
   const playerId = current.id
+
+  const stillAutomated = () => {
+    const s = game.getState()
+    const pl = s.players[turnIndex]
+    return Boolean(pl?.id === playerId && (pl.isAI || room.entrustedPlayers.has(playerId)))
+  }
+
   const ctx = game.getJudgeContext()
   const lastPattern = st.lastPlayedPattern
   const lastPlayerIndex = st.lastPlayerIndex
@@ -549,12 +644,16 @@ async function executeAiPlayTurn(room: Room, roomId: string, io: SocketServer) {
       return
     }
 
+    if (!stillAutomated()) return
+
     const llm = await aiReasonEngine.fetchLlmValidatedPlay(hint, ctx)
     st = game.getState()
     if (st.currentPlayerIndex !== turnIndex || st.players[turnIndex]?.id !== playerId) {
       console.warn('[ai] LLM 返回后回合已切换')
       return
     }
+
+    if (!stillAutomated()) return
 
     const handAfter = st.players[turnIndex].cards
 

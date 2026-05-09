@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <pattern id="felt-dot" width="8" height="8" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r="0.8" fill="rgba(0,40,30,0.04)" />
+      <circle cx="5" cy="4.5" r="0.6" fill="rgba(255,255,255,0.03)" />
+    </pattern>
+    <radialGradient id="felt-vignette" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="rgba(30,90,70,0.15)" />
+      <stop offset="100%" stop-color="rgba(10,30,25,0.35)" />
+    </radialGradient>
+  </defs>
+  <rect width="400" height="400" fill="#152238" />
+  <rect width="400" height="400" fill="url(#felt-dot)" />
+  <rect width="400" height="400" fill="url(#felt-vignette)" />
+</svg>

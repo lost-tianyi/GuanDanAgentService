@@ -1,107 +1,143 @@
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted } from 'vue'
 import { startCheerfulFolkSynthLoop } from '@/audio/cheerful-folk-synth'
 
 const MUTE_KEY = 'guandan-bgm-muted'
 
-export function useBGM() {
-  const bgmMuted = ref(typeof localStorage !== 'undefined' && localStorage.getItem(MUTE_KEY) === '1')
-  /** 是否使用本地/远程 mp3（否则为合成占位） */
-  const usingFile = ref(false)
-  const audioEl = ref<HTMLAudioElement | null>(null)
-  const useFallbackSynth = ref(false)
+/** 模块级单例：避免 Strict Mode / HMR 二次挂载时 new 出多路 BGM 叠放 */
+const bgmMuted = ref(typeof localStorage !== 'undefined' && localStorage.getItem(MUTE_KEY) === '1')
+const usingFile = ref(false)
 
-  let synthStop: (() => void) | null = null
-  let audioCtx: AudioContext | null = null
+/** 当前使用的 HTMLAudio（成功加载 mp3 时）；失败则为 null 走合成器 */
+let bgmAudio: HTMLAudioElement | null = null
+/** 已执行过一次 new Audio，避免 mp3 失败后 Strict Mode 二次挂载再 new 一路叠加 */
+let bgmAudioConstructionStarted = false
+let useFallbackSynth = false
+let synthStop: (() => void) | null = null
+let audioCtx: AudioContext | null = null
 
-  function stopSynth() {
-    if (synthStop) {
-      synthStop()
-      synthStop = null
-    }
-    if (audioCtx) {
-      audioCtx.close().catch(() => {})
-      audioCtx = null
-    }
+function stopSynth() {
+  if (synthStop) {
+    synthStop()
+    synthStop = null
+  }
+  if (audioCtx) {
+    audioCtx.close().catch(() => {})
+    audioCtx = null
+  }
+}
+
+function ensureSynthPlaying() {
+  if (synthStop) return
+  const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  if (!Ctx) return
+  audioCtx = new Ctx()
+  void audioCtx.resume()
+  synthStop = startCheerfulFolkSynthLoop(audioCtx, 0.1)
+}
+
+function pauseAll() {
+  if (bgmAudio) {
+    bgmAudio.pause()
+  }
+  stopSynth()
+}
+
+function playCurrent() {
+  if (bgmMuted.value) return
+  if (bgmAudio && usingFile.value && !useFallbackSynth) {
+    stopSynth()
+    void bgmAudio.play().catch(() => {})
+    return
+  }
+  if (useFallbackSynth) {
+    ensureSynthPlaying()
+  }
+}
+
+function toggleBgm() {
+  bgmMuted.value = !bgmMuted.value
+  localStorage.setItem(MUTE_KEY, bgmMuted.value ? '1' : '0')
+  if (bgmMuted.value) {
+    pauseAll()
+  } else {
+    playCurrent()
+  }
+}
+
+function initBgmOnce() {
+  /** 已创建过（含 Strict Mode 第二次 mount）：只恢复播放，避免重复 new Audio */
+  if (bgmAudio) {
+    if (!bgmMuted.value) playCurrent()
+    return
   }
 
-  function ensureSynthPlaying() {
-    if (synthStop) return
-    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (!Ctx) return
-    audioCtx = new Ctx()
-    void audioCtx.resume()
-    synthStop = startCheerfulFolkSynthLoop(audioCtx, 0.1)
+  /** mp3 已尝试过且失败：只剩合成器，勿再 new Audio */
+  if (bgmAudioConstructionStarted) {
+    if (!bgmMuted.value) playCurrent()
+    return
   }
 
-  function playCurrent() {
-    if (bgmMuted.value) return
-    if (audioEl.value) {
-      stopSynth()
-      audioEl.value.play().catch(() => {})
-      return
+  bgmAudioConstructionStarted = true
+
+  const url = (import.meta.env.VITE_BGM_URL as string | undefined)?.trim() || '/audio/bgm.mp3'
+  const a = new Audio(url)
+  a.loop = true
+  a.volume = 0.32
+  a.preload = 'auto'
+
+  bgmAudio = a
+
+  a.addEventListener(
+    'canplaythrough',
+    () => {
+      usingFile.value = true
+      useFallbackSynth = false
+      if (!bgmMuted.value) {
+        void a.play().catch(() => {})
+      }
+    },
+    { once: true },
+  )
+
+  a.addEventListener('error', () => {
+    usingFile.value = false
+    useFallbackSynth = true
+    try {
+      a.pause()
+      a.removeAttribute('src')
+      a.load()
+    } catch {
+      /* ignore */
     }
-    if (useFallbackSynth.value) {
+    bgmAudio = null
+    if (!bgmMuted.value) {
       ensureSynthPlaying()
     }
-  }
-
-  function pauseAll() {
-    audioEl.value?.pause()
-    stopSynth()
-  }
-
-  function toggleBgm() {
-    bgmMuted.value = !bgmMuted.value
-    localStorage.setItem(MUTE_KEY, bgmMuted.value ? '1' : '0')
-    if (bgmMuted.value) {
-      pauseAll()
-    } else {
-      playCurrent()
-    }
-  }
-
-  onMounted(() => {
-    const url =
-      (import.meta.env.VITE_BGM_URL as string | undefined)?.trim() || '/audio/bgm.mp3'
-    const a = new Audio(url)
-    a.loop = true
-    a.volume = 0.32
-    a.preload = 'auto'
-
-    audioEl.value = a
-
-    a.addEventListener(
-      'canplaythrough',
-      () => {
-        usingFile.value = true
-        useFallbackSynth.value = false
-        if (!bgmMuted.value) {
-          a.play().catch(() => {})
-        }
-      },
-      { once: true },
-    )
-    a.addEventListener('error', () => {
-      usingFile.value = false
-      useFallbackSynth.value = true
-      audioEl.value = null
-    })
-    a.load()
   })
+
+  a.load()
+}
+
+export function useBGM() {
+  onMounted(() => {
+    initBgmOnce()
+  })
+
+  /** 不在此 pause：Vue Strict Mode 会先卸载再挂载，避免误停导致叠轨或无法再播 */
 
   function unlockOnFirstInteraction() {
     const go = () => {
       void (async () => {
         if (bgmMuted.value) return
-        if (audioEl.value && !useFallbackSynth.value) {
+        if (bgmAudio && usingFile.value && !useFallbackSynth) {
           try {
-            await audioEl.value.play()
+            await bgmAudio.play()
           } catch {
-            audioEl.value.play().catch(() => {})
+            bgmAudio.play().catch(() => {})
           }
           return
         }
-        if (useFallbackSynth.value) {
+        if (useFallbackSynth) {
           ensureSynthPlaying()
           await audioCtx?.resume()
         }
@@ -114,10 +150,6 @@ export function useBGM() {
     document.addEventListener('keydown', go, { once: true })
     document.addEventListener('touchstart', go, { once: true })
   }
-
-  onBeforeUnmount(() => {
-    pauseAll()
-  })
 
   return {
     bgmMuted,

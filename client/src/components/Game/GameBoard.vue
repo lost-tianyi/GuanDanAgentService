@@ -1,5 +1,5 @@
 <template>
-  <div class="game-board">
+  <div class="game-board" :style="boardSurfaceStyle">
     <div class="top-player">
       <PlayerInfo 
         :player="players.top" 
@@ -35,7 +35,7 @@
         <HandCards 
           :cards="myCards"
           :selected-cards="selectedCards"
-          :selectable="true"
+          :selectable="handSelectable"
           @select="handleSelectCard"
           @add-to-selection="handleAddToSelection"
         />
@@ -49,16 +49,22 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { ui } from '@/assets/ui/urls'
 import PlayerInfo from '@/components/Game/PlayerInfo.vue'
 import HandCards from '@/components/Game/HandCards.vue'
 import PlayedCards from '@/components/Game/PlayedCards.vue'
 import type { GameState, Card, Player } from '@/types'
 
-const props = defineProps<{
-  gameState: GameState
-  selectedCards: Card[]
-  myPlayerId: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    gameState: GameState
+    selectedCards: Card[]
+    myPlayerId: string
+    /** 托管等场景下禁止本地选牌 */
+    handSelectable?: boolean
+  }>(),
+  { handSelectable: true },
+)
 
 const emit = defineEmits<{
   (e: 'select-card', card: Card): void
@@ -93,6 +99,17 @@ const rightIndex = computed(() => (myPlayerIndex.value + 1) % 4)
 const leftIndex = computed(() => (myPlayerIndex.value + 3) % 4)
 const playedCards = computed(() => props.gameState.playedCards)
 
+/** 牌桌底纹：assets/ui/game-felt-texture.svg 叠在渐变上 */
+const boardSurfaceStyle = computed(() => ({
+  backgroundImage: [
+    'radial-gradient(circle at center, rgba(74, 144, 217, 0.1) 0%, transparent 70%)',
+    'linear-gradient(135deg, rgba(26, 26, 46, 0.94) 0%, rgba(22, 33, 62, 0.96) 100%)',
+    `url(${ui.gameFelt})`,
+  ].join(', '),
+  backgroundSize: 'auto, auto, 320px 320px',
+  backgroundRepeat: 'no-repeat, no-repeat, repeat',
+}))
+
 const createEmptyPlayer = (): Player => ({
   id: '',
   name: '等待加入',
@@ -118,9 +135,6 @@ const handleAddToSelection = (card: Card) => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: 
-    radial-gradient(circle at center, rgba(74, 144, 217, 0.1) 0%, transparent 70%),
-    linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   border-radius: 16px;
   padding: 20px;
   position: relative;

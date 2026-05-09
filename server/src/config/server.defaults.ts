@@ -16,6 +16,12 @@ export const serverRuntimeDefaults = {
   aiPassDelayMs: 500,
 
   /**
+   * 人类出牌、过、进贡/还牌提交后，若下一步轮到 AI，则延迟多久再驱动 AI（毫秒）。
+   * 便于客户端播完语音/TTS，节奏更自然。AI 连打链仍由 aiPlayDelayMs / aiPassDelayMs 控制。
+   */
+  aiRespondDelayAfterHumanMs: 1500,
+
+  /**
    * 进贡、还牌阶段，AI 自动步骤之间的间隔（毫秒），便于玩家看清过程
    */
   tributeStepDelayMs: 550,

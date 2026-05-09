@@ -37,6 +37,9 @@ export const useGameStore = defineStore('game', () => {
   const playerName = ref('')
   const playerId = ref('')
   const mode = ref<'local' | 'online'>('local')
+  /** 服务端「托管」：由 AI 逻辑代打；同步自服务器 */
+  const autoPlayEnabled = ref(false)
+
   const coachHintState = ref<CoachHintState>({
     loading: false,
     reasonStreaming: false,
@@ -80,6 +83,20 @@ export const useGameStore = defineStore('game', () => {
     playerName.value = name
     playerId.value = id2
     mode.value = m
+  }
+
+  function setAutoPlay(enabled: boolean) {
+    autoPlayEnabled.value = enabled
+  }
+
+  /** 进房时根据全房托管列表同步本地开关 */
+  function syncAutoPlayFromEntrustedIds(entrustedPlayerIds: string[] | undefined) {
+    const ids = entrustedPlayerIds ?? []
+    autoPlayEnabled.value = ids.includes(playerId.value)
+  }
+
+  function resetAutoPlay() {
+    autoPlayEnabled.value = false
   }
 
   function addMessage(msg: ChatMessage) {
@@ -205,6 +222,7 @@ export const useGameStore = defineStore('game', () => {
     playerName,
     playerId,
     mode,
+    autoPlayEnabled,
     myPlayer,
     isMyTurn,
     currentTributeStep,
@@ -212,6 +230,9 @@ export const useGameStore = defineStore('game', () => {
     coachHintState,
     setGameState,
     setRoomInfo,
+    setAutoPlay,
+    syncAutoPlayFromEntrustedIds,
+    resetAutoPlay,
     addMessage,
     selectCard,
     addCardToSelection,

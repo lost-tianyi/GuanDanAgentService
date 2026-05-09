@@ -238,13 +238,18 @@ export class GuandanGame {
     return { success: true }
   }
 
-  /** AI 自动进贡/还牌一步 */
-  autoAdvanceTributeStep(): void {
+  /**
+   * AI 自动进贡/还牌一步。
+   * @param entrustedActorId 若为托管中的真人座位，传入该玩家 id（须与 step.from 一致）；AI 座位不传。
+   */
+  autoAdvanceTributeStep(entrustedActorId?: string): void {
     if (this.state.status !== 'tribute' || !this.state.tributeQueue) return
     const step = this.state.tributeQueue[this.state.tributeStepIndex]
     if (!step) return
     const from = this.state.players[step.from]
-    if (!from.isAI) return
+    if (!from.isAI) {
+      if (!entrustedActorId || entrustedActorId !== from.id) return
+    }
     if (step.type === 'tribute') {
       const pool = from.cards.filter((c) => !this.isFengRenPei(c))
       const use = pool.length ? pool : from.cards
@@ -364,6 +369,11 @@ export class GuandanGame {
     if (this.state.lastPlayerIndex === -1) {
       return { success: false, message: '你是第一个出牌的，不能不出' }
     }
+    this.state.playedCards.push({
+      position: playerIndex as PlayerPosition,
+      cards: [],
+      pattern: null,
+    })
     this.nextPlayer()
     return { success: true }
   }

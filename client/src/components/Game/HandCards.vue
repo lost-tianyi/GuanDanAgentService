@@ -23,14 +23,22 @@
           </div>
           <div class="card-top">
             <span>{{ getRankDisplay(card.rank) }}</span>
-            <span class="suit">{{ getSuitIcon(card) }}</span>
+            <img v-if="suitImg(card)" class="suit-img suit-img--corner" :src="suitImg(card)!" alt="" draggable="false" />
+            <span v-else class="suit">{{ getSuitIcon(card) }}</span>
           </div>
           <div class="card-center">
-            <template v-if="card.rank !== 'SJ' && card.rank !== 'BJ'">{{ getSuitIcon(card) }}</template>
+            <img
+              v-if="card.rank !== 'SJ' && card.rank !== 'BJ' && suitImg(card)"
+              class="suit-img suit-img--center"
+              :src="suitImg(card)!"
+              alt=""
+              draggable="false"
+            />
           </div>
           <div class="card-bottom">
             <span>{{ getRankDisplay(card.rank) }}</span>
-            <span class="suit">{{ getSuitIcon(card) }}</span>
+            <img v-if="suitImg(card)" class="suit-img suit-img--corner" :src="suitImg(card)!" alt="" draggable="false" />
+            <span v-else class="suit">{{ getSuitIcon(card) }}</span>
           </div>
         </div>
       </div>
@@ -41,6 +49,8 @@
 <script setup lang="ts">
 import { computed, ref, onUnmounted } from 'vue'
 import type { Card } from '@/types'
+import { resumeAudioForSfx } from '@/audio/play-sfx'
+import { suitImageUrl } from '@/assets/ui/urls'
 import { gameConfig } from '@game-config'
 import JokerCardArt from '@/components/Game/JokerCardArt.vue'
 
@@ -138,6 +148,8 @@ function onCardPointerDown(e: PointerEvent, card: Card) {
   if (e.pointerType === 'mouse' && e.button !== 0) return
   if (ptr.activeId !== null) return
 
+  void resumeAudioForSfx()
+
   e.preventDefault()
 
   ptr.activeId = e.pointerId
@@ -232,6 +244,11 @@ const getSuitIcon = (card: Card) => {
     diamonds: '♦',
   }
   return map[card.suit] || ''
+}
+
+function suitImg(card: Card): string | null {
+  if (card.rank === 'SJ' || card.rank === 'BJ') return null
+  return suitImageUrl(card.suit)
 }
 
 </script>
@@ -380,5 +397,22 @@ const getSuitIcon = (card: Card) => {
 
 .suit {
   font-size: 10px;
+}
+
+.suit-img {
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.suit-img--corner {
+  width: 11px;
+  height: 11px;
+  margin-top: 1px;
+}
+
+.suit-img--center {
+  width: 26px;
+  height: 26px;
 }
 </style>

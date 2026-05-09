@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 85" width="60" height="85">
+  <defs>
+    <linearGradient id="bj-fire" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e74c3c" />
+      <stop offset="45%" stop-color="#c0392b" />
+      <stop offset="100%" stop-color="#7b1c12" />
+    </linearGradient>
+    <pattern id="bj-ray" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M6 0 L6 12 M0 6 L12 6" stroke="rgba(255,215,120,0.12)" stroke-width="0.35" />
+    </pattern>
+    <linearGradient id="bj-gold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fde68a" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+  </defs>
+  <rect width="60" height="85" fill="url(#bj-fire)" rx="5" />
+  <rect width="60" height="85" fill="url(#bj-ray)" rx="5" />
+  <circle cx="30" cy="32" r="18" fill="rgba(255,200,80,0.12)" />
+  <path fill="url(#bj-gold)" opacity="0.85" transform="translate(8,14)" d="M0 0 L3 1.5 L0 3 L-3 1.5 Z" />
+  <path fill="url(#bj-gold)" opacity="0.85" transform="translate(52,14)" d="M0 0 L3 1.5 L0 3 L-3 1.5 Z" />
+  <path fill="url(#bj-gold)" opacity="0.85" transform="translate(8,72)" d="M0 0 L3 1.5 L0 3 L-3 1.5 Z" />
+  <path fill="url(#bj-gold)" opacity="0.85" transform="translate(52,72)" d="M0 0 L3 1.5 L0 3 L-3 1.5 Z" />
+  <rect x="4" y="10" width="52" height="65" rx="3" fill="none" stroke="rgba(253,224,71,0.35)" stroke-width="0.7" />
+  <path
+    d="M16 54 L18 42 L24 46 L30 38 L36 46 L42 42 L44 54 L44 58 L16 58 Z"
+    fill="url(#bj-gold)"
+    stroke="#92400e"
+    stroke-width="0.45"
+  />
+  <circle cx="18" cy="40" r="1.8" fill="#fef3c7" />
+  <circle cx="30" cy="36" r="2" fill="#fef3c7" />
+  <circle cx="42" cy="40" r="1.8" fill="#fef3c7" />
+  <rect x="16" y="54" width="28" height="5" rx="1" fill="#b45309" />
+  <ellipse cx="30" cy="68" rx="16" ry="4" fill="rgba(0,0,0,0.15)" />
+</svg>

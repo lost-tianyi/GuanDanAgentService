@@ -8,7 +8,10 @@
         <span>回合: {{ roundNumber }}</span>
         <span v-if="store.gameState.status === 'tribute'" class="phase-tag">进贡/还牌</span>
       </div>
-      <button class="back-btn" @click="goHome">返回</button>
+      <button type="button" class="back-btn" @click="goHome">
+        <img class="back-btn__icon" :src="ui.iconBack" alt="" width="18" height="18" draggable="false" />
+        返回
+      </button>
     </div>
 
     <div class="game-area">
@@ -16,6 +19,7 @@
         :game-state="store.gameState"
         :selected-cards="store.selectedCards"
         :my-player-id="store.playerId"
+        :hand-selectable="handSelectable"
         @select-card="handleSelectCard"
         @add-to-selection="handleAddToSelection"
         @play-cards="handlePlayCards"
@@ -93,21 +97,47 @@
       <p v-if="store.currentTributeStep">
         {{ tributePhaseDescription }}
       </p>
-      <button
-        class="control-btn tribute"
-        :disabled="store.selectedCards.length !== 1 || !store.isMyTributeTurn"
-        @click="handleSubmitTribute"
-      >
-        {{ tributeButtonLabel }}
-      </button>
+      <div class="tribute-actions">
+        <button
+          class="control-btn tribute"
+          :disabled="store.selectedCards.length !== 1 || !store.isMyTributeTurn || tributeSubmitBlocked"
+          @click="handleSubmitTribute"
+        >
+          {{ tributeButtonLabel }}
+        </button>
+        <button
+          v-if="canToggleAutoPlay"
+          type="button"
+          class="control-btn auto-play"
+          data-testid="btn-auto-play-tribute"
+          @click="toggleAutoPlay"
+        >
+          {{ store.autoPlayEnabled ? '取消托管' : '托管' }}
+        </button>
+      </div>
     </div>
 
     <div v-else class="game-controls">
-      <button class="control-btn play" :disabled="store.selectedCards.length === 0 || !canPlay" @click="handlePlayCards">
+      <button
+        type="button"
+        class="control-btn play"
+        data-testid="btn-play-cards"
+        :disabled="store.selectedCards.length === 0 || !canPlay"
+        @click="handlePlayCards"
+      >
         出牌
       </button>
-      <button class="control-btn pass" :disabled="!canPass" @click="handlePass">
+      <button type="button" class="control-btn pass" data-testid="btn-pass" :disabled="!canPass" @click="handlePass">
         不出
+      </button>
+      <button
+        v-if="canToggleAutoPlay"
+        type="button"
+        class="control-btn auto-play"
+        data-testid="btn-auto-play"
+        @click="toggleAutoPlay"
+      >
+        {{ store.autoPlayEnabled ? '取消托管' : '托管' }}
       </button>
     </div>
 
@@ -123,6 +153,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ui } from '@/assets/ui/urls'
 import GameBoard from '@/components/Game/GameBoard.vue'
 import ChatWindow from '@/components/Chat/ChatWindow.vue'
 import CoachHintPanel from '@/components/Game/CoachHintPanel.vue'
@@ -151,8 +182,31 @@ const levelRankLabel = computed(() => {
 const roundNumber = computed(() => store.gameState.roundNumber)
 const displayRoomId = computed(() => store.roomId || routeRoomId.value)
 
-const canPlay = computed(() => store.gameState.status === 'playing' && store.isMyTurn)
-const canPass = computed(() => store.gameState.status === 'playing' && store.gameState.lastPlayerIndex !== -1 && store.isMyTurn)
+const canPlay = computed(() => {
+  if (store.gameState.status !== 'playing' || !store.isMyTurn) return false
+  if (store.autoPlayEnabled) return false
+  return true
+})
+const canPass = computed(() => {
+  if (store.gameState.status !== 'playing' || store.gameState.lastPlayerIndex === -1 || !store.isMyTurn) return false
+  if (store.autoPlayEnabled) return false
+  return true
+})
+
+/** 托管开启且轮到本人时，禁止手动进贡确认（避免与代打冲突） */
+const tributeSubmitBlocked = computed(() => store.autoPlayEnabled && store.isMyTributeTurn)
+
+const handSelectable = computed(() => {
+  if (!store.autoPlayEnabled) return true
+  if (store.gameState.status === 'playing' && store.isMyTurn) return false
+  if (store.gameState.status === 'tribute' && store.isMyTributeTurn) return false
+  return true
+})
+
+const canToggleAutoPlay = computed(() => {
+  if (!store.myPlayer || store.myPlayer.isAI) return false
+  return store.gameState.status === 'playing' || store.gameState.status === 'tribute'
+})
 
 const tributePhaseDescription = computed(() => {
   const step = store.currentTributeStep
@@ -176,7 +230,8 @@ const showCoachHint = computed(() => {
     store.gameState.status === 'playing' &&
     store.isMyTurn &&
     !!store.myPlayer &&
-    !store.myPlayer.isAI
+    !store.myPlayer.isAI &&
+    !store.autoPlayEnabled
   )
 })
 
@@ -264,6 +319,12 @@ const handlePass = async () => {
   }
 }
 
+async function toggleAutoPlay() {
+  const room = store.roomId || routeRoomId.value
+  if (!room) return
+  await socketApi.setAutoPlay(room, !store.autoPlayEnabled)
+}
+
 const handleSubmitTribute = async () => {
   const room = store.roomId || routeRoomId.value
   const card = store.selectedCards[0]
@@ -339,12 +400,21 @@ onMounted(async () => {
 }
 
 .back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 8px 16px;
   border: none;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
   cursor: pointer;
+  font-size: 14px;
+}
+
+.back-btn__icon {
+  display: block;
+  flex-shrink: 0;
 }
 
 .game-area {
@@ -358,6 +428,8 @@ onMounted(async () => {
 }
 
 .tribute-hint {
+  position: relative;
+  z-index: 50;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -374,7 +446,17 @@ onMounted(async () => {
   line-height: 1.5;
 }
 
+.tribute-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
 .game-controls {
+  position: relative;
+  z-index: 50;
   display: flex;
   justify-content: center;
   gap: 20px;
@@ -408,6 +490,18 @@ onMounted(async () => {
 .control-btn.pass:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+.control-btn.auto-play {
+  padding: 9px 26px;
+  font-size: 14px;
+  background: rgba(114, 46, 209, 0.55);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.control-btn.auto-play:hover {
+  background: rgba(114, 46, 209, 0.72);
 }
 
 .control-btn.tribute {

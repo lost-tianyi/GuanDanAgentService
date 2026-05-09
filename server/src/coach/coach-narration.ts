@@ -69,7 +69,7 @@ function sortCardsForDisplay(cards: Card[]): Card[] {
  */
 export function describePlayColloquially(pattern: any): string {
   if (!pattern) {
-    return '（无牌）'
+    return '选择不出'
   }
   const type = pattern.type as string | undefined
   const cards = pattern.cards as Card[] | undefined

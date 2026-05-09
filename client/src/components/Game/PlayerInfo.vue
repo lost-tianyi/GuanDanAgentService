@@ -1,7 +1,14 @@
 <template>
   <div class="player-info" :class="position">
     <div class="avatar">
-      {{ player?.isAI ? '🤖' : '👤' }}
+      <img
+        class="avatar-img"
+        :src="player?.isAI ? ui.avatarAi : ui.avatarPlayer"
+        alt=""
+        width="40"
+        height="40"
+        draggable="false"
+      />
     </div>
     <div class="info">
       <div class="name">{{ player?.name || '等待中' }}</div>
@@ -19,6 +26,7 @@
 
 <script setup lang="ts">
 import type { Player, PlayerPosition } from '@/types'
+import { ui } from '@/assets/ui/urls'
 
 defineProps<{
   player: Player | null
@@ -41,11 +49,19 @@ defineProps<{
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--primary-color);
+  background: rgba(0, 0, 0, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .info {

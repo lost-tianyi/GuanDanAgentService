@@ -7,19 +7,19 @@
 
     <div class="menu">
       <div class="menu-card" @click="startLocalGame">
-        <div class="icon">🤖</div>
+        <div class="icon"><img :src="ui.iconMenuAi" alt="" width="64" height="64" draggable="false" /></div>
         <h3>人机对战</h3>
         <p>与 AI 对手进行游戏</p>
       </div>
 
       <div class="menu-card" @click="showCreateRoom = true">
-        <div class="icon">🏠</div>
+        <div class="icon"><img :src="ui.iconMenuHome" alt="" width="64" height="64" draggable="false" /></div>
         <h3>创建房间</h3>
         <p>创建私人房间</p>
       </div>
 
       <div class="menu-card" @click="showJoinRoom = true">
-        <div class="icon">🔗</div>
+        <div class="icon"><img :src="ui.iconMenuJoin" alt="" width="64" height="64" draggable="false" /></div>
         <h3>加入房间</h3>
         <p>输入房间号加入</p>
       </div>
@@ -65,6 +65,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { ui } from '@/assets/ui/urls'
 
 const router = useRouter()
 
@@ -160,8 +161,17 @@ const closeModals = () => {
 }
 
 .menu-card .icon {
-  font-size: 40px;
   margin-bottom: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.menu-card .icon img {
+  display: block;
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
 }
 
 .menu-card h3 {

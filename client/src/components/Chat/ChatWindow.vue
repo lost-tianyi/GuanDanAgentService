@@ -82,10 +82,11 @@ watch(() => props.messages.length, async () => {
 <style scoped>
 .chat-window {
   position: fixed;
-  right: 20px;
+  left: 20px;
   bottom: 20px;
   width: 300px;
-  height: 400px;
+  height: min(400px, calc(100vh - 180px));
+  max-height: calc(100vh - 180px);
   background: var(--card-bg);
   border-radius: 12px;
   display: flex;
@@ -97,7 +98,7 @@ watch(() => props.messages.length, async () => {
 
 .chat-fab {
   position: fixed;
-  right: 20px;
+  left: 20px;
   bottom: 20px;
   z-index: 21;
   border: none;
