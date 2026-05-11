@@ -45,7 +45,7 @@
     </div>
 
     <div
-      v-if="preloadOverlay.show"
+      v-if="preloadUi.show"
       class="preload-overlay"
       role="status"
       aria-live="polite"
@@ -55,9 +55,24 @@
       <div class="preload-card">
         <p class="preload-title">加载游戏资源</p>
         <div class="preload-bar" aria-hidden="true">
-          <div class="preload-bar__fill" :style="{ width: preloadOverlay.percent + '%' }" />
+          <div class="preload-bar__track">
+            <div
+              class="preload-bar__fill"
+              :style="{ width: preloadUi.smoothPercent + '%' }"
+            >
+              <span class="preload-bar__shine" />
+            </div>
+          </div>
         </div>
-        <p class="preload-hint">{{ preloadOverlay.percent }}%</p>
+        <p class="preload-meta">
+          <span class="preload-meta__pct">{{ displayPercent }}%</span>
+          <span class="preload-meta__sep">·</span>
+          <span>第 {{ preloadUi.loaded }} / {{ preloadUi.total }} 项</span>
+        </p>
+        <p class="preload-hint">
+          已用时 {{ elapsedSec }}s / 最多 {{ maxSec }}s
+          <span v-if="preloadUi.degraded" class="preload-hint__warn">（已超时，继续进入）</span>
+        </p>
       </div>
     </div>
 
@@ -84,24 +99,120 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ui } from '@/assets/ui/urls'
-import { preloadTier1GameAssets } from '@/utils/game-assets-preload'
+import { preloadTier1GameAssets, TIER1_PRELOAD_TIMEOUT_MS } from '@/utils/game-assets-preload'
 
 const router = useRouter()
 
-const preloadOverlay = ref({ show: false, percent: 0 })
+const maxSec = TIER1_PRELOAD_TIMEOUT_MS / 1000
+
+const preloadUi = ref({
+  show: false,
+  loaded: 0,
+  total: 0,
+  smoothPercent: 0,
+  targetPercent: 0,
+  degraded: false,
+})
+
+const preloadElapsedMs = ref(0)
+
+const displayPercent = computed(() =>
+  Math.min(100, Math.max(0, Math.round(preloadUi.value.smoothPercent))),
+)
+
+const elapsedSec = computed(() => (preloadElapsedMs.value / 1000).toFixed(1))
+
+let preloadStart = 0
+let tickTimer: ReturnType<typeof setInterval> | undefined
+let rafSmooth: number | undefined
+
+function stopPreloadTimers() {
+  if (tickTimer !== undefined) {
+    clearInterval(tickTimer)
+    tickTimer = undefined
+  }
+  if (rafSmooth !== undefined) {
+    cancelAnimationFrame(rafSmooth)
+    rafSmooth = undefined
+  }
+}
+
+function tickElapsed() {
+  preloadElapsedMs.value = Math.min(
+    TIER1_PRELOAD_TIMEOUT_MS,
+    Math.round(performance.now() - preloadStart),
+  )
+}
+
+function runSmoothLoop() {
+  const step = () => {
+    if (!preloadUi.value.show) return
+    const { smoothPercent, targetPercent } = preloadUi.value
+    const delta = targetPercent - smoothPercent
+    const next =
+      Math.abs(delta) < 0.35 ? targetPercent : smoothPercent + delta * 0.22
+    preloadUi.value = { ...preloadUi.value, smoothPercent: next }
+    rafSmooth = requestAnimationFrame(step)
+  }
+  rafSmooth = requestAnimationFrame(step)
+}
+
+onUnmounted(() => {
+  stopPreloadTimers()
+})
 
 async function runPreloadThen(go: () => void) {
-  preloadOverlay.value = { show: true, percent: 0 }
+  stopPreloadTimers()
+  preloadStart = performance.now()
+  preloadElapsedMs.value = 0
+  preloadUi.value = {
+    show: true,
+    loaded: 0,
+    total: 0,
+    smoothPercent: 0,
+    targetPercent: 0,
+    degraded: false,
+  }
+  runSmoothLoop()
+
+  tickTimer = setInterval(tickElapsed, 100)
+  tickElapsed()
+
+  let timedOut = false
   try {
-    await preloadTier1GameAssets(({ loaded, total }) => {
-      const pct = total > 0 ? Math.round((loaded / total) * 100) : 100
-      preloadOverlay.value = { show: true, percent: pct }
-    })
+    const r = await preloadTier1GameAssets(
+      ({ loaded, total }) => {
+        const pct = total > 0 ? (loaded / total) * 100 : 100
+        preloadUi.value = {
+          ...preloadUi.value,
+          loaded,
+          total,
+          targetPercent: pct,
+        }
+      },
+      { timeoutMs: TIER1_PRELOAD_TIMEOUT_MS },
+    )
+    timedOut = r.timedOut
   } finally {
-    preloadOverlay.value = { show: false, percent: 0 }
+    preloadUi.value = {
+      ...preloadUi.value,
+      degraded: timedOut,
+      smoothPercent: 100,
+      targetPercent: 100,
+    }
+    stopPreloadTimers()
+    await new Promise((r) => setTimeout(r, timedOut ? 320 : 180))
+    preloadUi.value = {
+      show: false,
+      loaded: 0,
+      total: 0,
+      smoothPercent: 0,
+      targetPercent: 0,
+      degraded: false,
+    }
   }
   go()
 }
@@ -349,24 +460,91 @@ const closeModals = () => {
 }
 
 .preload-bar {
-  height: 10px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.35);
+  overflow: visible;
+}
+
+.preload-bar__track {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.38);
   overflow: hidden;
-  border: 1px solid rgba(255, 200, 120, 0.15);
+  border: 1px solid rgba(255, 200, 120, 0.18);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 .preload-bar__fill {
+  position: relative;
   height: 100%;
+  min-width: 0;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--ui-accent-gold-deep) 0%, var(--ui-accent-gold) 100%);
-  transition: width 0.2s ease-out;
+  background: linear-gradient(
+    90deg,
+    var(--ui-accent-gold-deep) 0%,
+    var(--ui-accent-gold) 55%,
+    #ffe08a 100%
+  );
+  box-shadow: 0 0 12px rgba(255, 200, 80, 0.35);
+  transition: width 0.08s linear;
+}
+
+.preload-bar__shine {
+  display: block;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    -55deg,
+    transparent 0,
+    transparent 7px,
+    rgba(255, 255, 255, 0.14) 7px,
+    rgba(255, 255, 255, 0.14) 14px
+  );
+  animation: preload-bar-shine 0.85s linear infinite;
+}
+
+@keyframes preload-bar-shine {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(28px);
+  }
+}
+
+.preload-meta {
+  margin: 14px 0 6px;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(255, 240, 220, 0.88);
+  letter-spacing: 0.02em;
+}
+
+.preload-meta__pct {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-accent-title);
+}
+
+.preload-meta__sep {
+  margin: 0 0.35em;
+  opacity: 0.45;
 }
 
 .preload-hint {
-  margin: 14px 0 0;
+  margin: 0;
   text-align: center;
-  font-size: 14px;
-  color: rgba(255, 240, 220, 0.75);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 240, 220, 0.68);
+}
+
+.preload-hint__warn {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(255, 200, 120, 0.92);
 }
 </style>

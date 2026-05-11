@@ -32,7 +32,10 @@ export const TIER1_PHRASE_KEYS = [
 
 export type PreloadProgress = { loaded: number; total: number }
 
-const DEFAULT_TIMEOUT_MS = 25_000
+/** 预加载最长等待；超时后降级进入对局，资源可在局内继续加载 */
+export const TIER1_PRELOAD_TIMEOUT_MS = 15_000
+
+const DEFAULT_TIMEOUT_MS = TIER1_PRELOAD_TIMEOUT_MS
 const DEFAULT_CONCURRENCY = 4
 
 function preloadImage(url: string): Promise<void> {
@@ -113,11 +116,12 @@ function raceTimeout<T>(p: Promise<T>, ms: number): Promise<T | 'timeout'> {
 
 /**
  * 预加载 Tier1 资源；超时则终止等待并返回（已进入游戏的页面仍可懒加载）。
+ * @returns timedOut 为 true 表示在 timeoutMs 内未全部完成，已降级。
  */
 export async function preloadTier1GameAssets(
   onProgress: (p: PreloadProgress) => void,
   options?: { timeoutMs?: number; concurrency?: number },
-): Promise<void> {
+): Promise<{ timedOut: boolean }> {
   const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS
   const concurrency = options?.concurrency ?? DEFAULT_CONCURRENCY
 
@@ -137,7 +141,7 @@ export async function preloadTier1GameAssets(
   const total = tasks.length
   if (total === 0) {
     onProgress({ loaded: 0, total: 0 })
-    return
+    return { timedOut: false }
   }
 
   let loaded = 0
@@ -158,7 +162,9 @@ export async function preloadTier1GameAssets(
   }
 
   const result = await raceTimeout(work(), timeoutMs)
-  if (result === 'timeout') {
+  const timedOut = result === 'timeout'
+  if (timedOut) {
     onProgress({ loaded: total, total })
   }
+  return { timedOut }
 }
