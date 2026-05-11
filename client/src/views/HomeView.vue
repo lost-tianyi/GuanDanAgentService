@@ -44,6 +44,23 @@
       </div>
     </div>
 
+    <div
+      v-if="preloadOverlay.show"
+      class="preload-overlay"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      data-testid="game-preload-overlay"
+    >
+      <div class="preload-card">
+        <p class="preload-title">加载游戏资源</p>
+        <div class="preload-bar" aria-hidden="true">
+          <div class="preload-bar__fill" :style="{ width: preloadOverlay.percent + '%' }" />
+        </div>
+        <p class="preload-hint">{{ preloadOverlay.percent }}%</p>
+      </div>
+    </div>
+
     <div class="modal" v-if="showCreateRoom || showJoinRoom" @click.self="closeModals">
       <div class="modal-content" v-if="showCreateRoom">
         <h2>创建房间</h2>
@@ -70,8 +87,24 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ui } from '@/assets/ui/urls'
+import { preloadTier1GameAssets } from '@/utils/game-assets-preload'
 
 const router = useRouter()
+
+const preloadOverlay = ref({ show: false, percent: 0 })
+
+async function runPreloadThen(go: () => void) {
+  preloadOverlay.value = { show: true, percent: 0 }
+  try {
+    await preloadTier1GameAssets(({ loaded, total }) => {
+      const pct = total > 0 ? Math.round((loaded / total) * 100) : 100
+      preloadOverlay.value = { show: true, percent: pct }
+    })
+  } finally {
+    preloadOverlay.value = { show: false, percent: 0 }
+  }
+  go()
+}
 
 const homeThemeVars = computed(() => ({
   '--home-menu-wood': `url(${ui.themePanelHeaderWood})`,
@@ -88,26 +121,32 @@ const startLocalGame = () => {
   startLocal.value = true
 }
 
-const startGame = (diff: 'easy' | 'normal' | 'hard') => {
+const startGame = async (diff: 'easy' | 'normal' | 'hard') => {
   difficulty.value = diff
-  router.push({ 
-    name: 'game', 
-    query: { mode: 'local', difficulty: diff, name: playerName.value || '玩家' }
+  await runPreloadThen(() => {
+    router.push({
+      name: 'game',
+      query: { mode: 'local', difficulty: diff, name: playerName.value || '玩家' },
+    })
   })
 }
 
-const createRoom = () => {
+const createRoom = async () => {
   const newRoomId = Math.random().toString(36).substring(2, 8).toUpperCase()
-  router.push({
-    name: 'game',
-    query: { mode: 'online', room: newRoomId, name: playerName.value || '玩家', action: 'create' }
+  await runPreloadThen(() => {
+    router.push({
+      name: 'game',
+      query: { mode: 'online', room: newRoomId, name: playerName.value || '玩家', action: 'create' },
+    })
   })
 }
 
-const joinRoom = () => {
-  router.push({
-    name: 'game',
-    query: { mode: 'online', room: roomId.value, name: playerName.value || '玩家', action: 'join' }
+const joinRoom = async () => {
+  await runPreloadThen(() => {
+    router.push({
+      name: 'game',
+      query: { mode: 'online', room: roomId.value, name: playerName.value || '玩家', action: 'join' },
+    })
   })
 }
 
@@ -278,5 +317,56 @@ const closeModals = () => {
   border: 1px solid var(--ui-chrome-border-soft);
   box-shadow: none;
   color: rgba(255, 255, 255, 0.88);
+}
+
+.preload-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(10, 8, 6, 0.82);
+  backdrop-filter: blur(6px);
+}
+
+.preload-card {
+  width: min(360px, 92vw);
+  padding: 28px 24px;
+  border-radius: 16px;
+  border: 1px solid var(--ui-chrome-border-soft);
+  background: linear-gradient(165deg, rgba(48, 36, 26, 0.95) 0%, rgba(22, 18, 14, 0.98) 100%);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+.preload-title {
+  margin: 0 0 18px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ui-accent-title);
+}
+
+.preload-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  border: 1px solid rgba(255, 200, 120, 0.15);
+}
+
+.preload-bar__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--ui-accent-gold-deep) 0%, var(--ui-accent-gold) 100%);
+  transition: width 0.2s ease-out;
+}
+
+.preload-hint {
+  margin: 14px 0 0;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(255, 240, 220, 0.75);
 }
 </style>
