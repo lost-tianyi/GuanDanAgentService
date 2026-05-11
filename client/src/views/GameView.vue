@@ -18,10 +18,13 @@
           ><span class="stat-chip__v">进贡/还牌</span></span
         >
       </div>
-      <button type="button" class="back-btn" @click="goHome">
-        <img class="back-btn__icon" :src="ui.iconBack" alt="" width="18" height="18" draggable="false" />
-        返回
-      </button>
+      <div class="game-header__trailing">
+        <AudioChromeControls variant="embedded" />
+        <button type="button" class="back-btn" @click="goHome">
+          <img class="back-btn__icon" :src="ui.iconBack" alt="" width="18" height="18" draggable="false" />
+          返回
+        </button>
+      </div>
     </div>
 
     <div class="game-area">
@@ -200,6 +203,7 @@
 import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ui } from '@/assets/ui/urls'
+import AudioChromeControls from '@/components/AudioChromeControls.vue'
 import GameBoard from '@/components/Game/GameBoard.vue'
 import ChatWindow from '@/components/Chat/ChatWindow.vue'
 import CoachHintPanel from '@/components/Game/CoachHintPanel.vue'
@@ -476,15 +480,21 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  max-width: 1200px;
-  margin: 0 auto;
+  height: 100dvh;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding: 10px;
+  padding-left: max(10px, env(safe-area-inset-left));
+  padding-right: max(10px, env(safe-area-inset-right));
+  box-sizing: border-box;
 }
 
 .game-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 12px 18px;
   border-radius: 12px;
   margin-bottom: 10px;
@@ -502,6 +512,15 @@ onMounted(async () => {
   align-items: center;
   gap: 10px 12px;
   color: rgba(255, 236, 210, 0.88);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.game-header__trailing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .stat-chip {

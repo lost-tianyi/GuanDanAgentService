@@ -44,7 +44,7 @@ test.describe('出牌按钮诊断', () => {
 
     if (disabled) {
       const firstWrapper = page.locator('.hand-cards .card-wrapper').first()
-      await firstWrapper.click({ timeout: 10_000 })
+      await firstWrapper.click({ timeout: 10_000, force: true })
       await page.waitForTimeout(300)
     }
 

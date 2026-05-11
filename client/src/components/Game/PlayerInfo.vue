@@ -123,6 +123,16 @@ const plateStyle = computed(() => ({
   writing-mode: vertical-lr;
 }
 
+/** 头像不参与竖排书写模式，避免 flex 子项在交叉轴被拉成非正方形 */
+.player-info.left .ui-ai-avatar-frame,
+.player-info.right .ui-ai-avatar-frame,
+.player-info.left .avatar,
+.player-info.right .avatar {
+  writing-mode: horizontal-tb;
+  flex-shrink: 0;
+  align-self: center;
+}
+
 .player-info.left .info,
 .player-info.right .info {
   writing-mode: horizontal-tb;

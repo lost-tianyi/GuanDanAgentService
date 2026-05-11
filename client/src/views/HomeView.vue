@@ -6,7 +6,7 @@
     </div>
 
     <div class="menu">
-      <div class="menu-card" @click="startLocalGame">
+      <div class="menu-card" data-testid="home-menu-ai" @click="startLocalGame">
         <div class="icon">
           <div class="ui-ai-avatar-frame ui-ai-avatar-frame--menu" aria-hidden="true">
             <img :src="ui.avatarAi" alt="" width="64" height="64" draggable="false" />
@@ -182,6 +182,8 @@ const closeModals = () => {
 .menu-card .icon .ui-ai-avatar-frame--menu img {
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .menu-card h3 {

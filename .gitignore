@@ -10,6 +10,10 @@ server/node_modules/
 client/dist/
 server/dist/
 
+# Playwright / E2E 本地产物
+client/playwright-report/
+client/test-results/
+
 # Env / secrets
 server/.env
 server/.env.*

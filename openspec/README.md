@@ -16,14 +16,42 @@
 
 ## CLI（项目内）
 
-根目录已声明 `@fission-ai/openspec` 为开发依赖，推荐使用：
+根目录已声明 `@fission-ai/openspec` 为开发依赖。CLI 可执行文件在 **`node_modules/.bin/openspec`**，不会自动进入系统 `PATH`，因此 **在终端直接输入 `openspec` 可能报 `command not found`**。可按下面任一方式使用。
+
+### 推荐（无需改 PATH）
+
+在**仓库根目录**（与根 `package.json` 同级）执行：
 
 ```bash
-npm install          # 仓库根目录
+npm install
 npm run openspec -- --help
+npm run openspec -- list
+npm run openspec -- status --change "immersive-game-canvas-full-bleed" --json
 ```
 
-全局安装亦可：`npm install -g @fission-ai/openspec@latest`。
+`--` 后面的参数会原样传给 `openspec`。
+
+### 等价写法
+
+```bash
+cd /path/to/guandan
+npx openspec --help
+./node_modules/.bin/openspec list
+```
+
+### 全局安装（可选）
+
+若希望随处执行 `openspec`：
+
+```bash
+npm install -g @fission-ai/openspec@latest
+```
+
+全局版本与项目依赖版本可能不一致，以团队约定为准。
+
+### Cursor / 自动化脚本
+
+在 Cursor 终端或非交互脚本里，优先使用 **`npm run openspec -- <子命令>`**，避免依赖当前 shell 的 PATH。
 
 ## 遥测（可选关闭）
 

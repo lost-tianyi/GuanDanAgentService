@@ -68,6 +68,7 @@ npm run dev
 cd guandan/client
 npm run dev       # 本地开发
 npm run build     # 生产构建（含 vue-tsc）
+npm run test      # Vitest（含横竖屏判定、路由音频控件等单测）
 npm run preview   # 预览构建产物
 npx vue-tsc --noEmit  # 类型检查
 ```
@@ -80,6 +81,12 @@ npm run build     # TypeScript 编译到 dist
 npm run start     # 启动 dist 服务
 npx tsc --noEmit  # 类型检查
 ```
+
+### 7.3 合并前检查（建议）
+合并涉及客户端或服务端的改动前，建议在本地依次执行：
+- `cd guandan/client && npm run build && npm run test`
+- `cd guandan/server && npm run test`
+- E2E（需已启动 `server` 与 `client` 开发服务）：`cd guandan/client && npm run test:e2e`（含对局壳层满宽与顶栏音频控件的 `immersive-game-shell` 等 spec）
 
 ## 8) Docker 部署
 

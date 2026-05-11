@@ -6,6 +6,7 @@ import jokerSmall from './joker-small.svg'
 import jokerBig from './joker-big.svg'
 import gameFelt from './game-felt-texture.svg'
 import gameFeltPhoto from '../generated/felt-table-preview.png'
+import portraitRotateHint from '../generated/portrait-rotate-hint.png'
 import suitSpades from './suit-spades.svg'
 import suitHearts from './suit-hearts.svg'
 import suitDiamonds from './suit-diamonds.svg'
@@ -28,6 +29,8 @@ export const ui = {
   gameFelt,
   /** 生成绒面摄影素材，用于 GameBoard 背景 */
   gameFeltPhoto,
+  /** 竖屏时横屏引导插画（欢乐斗地主向质感） */
+  portraitRotateHint,
   iconMenuHome,
   iconMenuJoin,
   avatarAi,
