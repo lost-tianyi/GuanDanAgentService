@@ -57,7 +57,7 @@
 ```
 guandan/
 ├── client/                 # Vue 前端
-│   ├── e2e/                # Playwright 端到端（需手动起服务）
+│   ├── tests/              # Vitest（unit）与 Playwright（e2e）；见 tests/README.md
 │   ├── scripts/            # 短语音频生成等工具脚本
 │   ├── src/
 │   │   ├── assets/         # 静态资源（ui、audio/wav 等）
@@ -69,6 +69,7 @@ guandan/
 │   │   └── views/
 │   └── package.json
 ├── server/
+│   ├── tests/              # Vitest 单元（game）；见 tests/README.md
 │   ├── src/
 │   │   ├── game/           # 规则与状态机
 │   │   ├── ai/

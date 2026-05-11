@@ -1,6 +1,19 @@
+/**
+ * Playwright E2E：竖屏旋转门（Portrait gate）显隐与首页可点。
+ *
+ * 测试边界（范围内）：
+ * - 固定 iPhone UA + 竖屏视口 → `portrait-rotate-gate` 可见。
+ * - 横屏后 gate 隐藏；`home-menu-ai` 可点开难度选择。
+ *
+ * 不在范围内：
+ * - 真机 Orientation API、全屏、刘海遮挡。
+ *
+ * 环境：Vite 首页 `/` 可访问（无需后端）。
+ */
+
 import { test, expect } from '@playwright/test'
 
-/** 与 viewport 单测一致的 iPhone UA，用于触发 `isMobileUiCandidate` */
+/** 与 `tests/unit/utils/viewport.test.ts` 一致，用于触发移动 UI */
 const iphoneUa =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
 
@@ -9,6 +22,7 @@ function baseUrl(): string {
 }
 
 test.describe('mobile landscape orientation gate', () => {
+  // 边界：仅验 gate 与菜单交互；不测进入对局后牌桌
   test('portrait shows rotate gate; landscape hides gate and home is tappable', async ({ browser }) => {
     const context = await browser.newContext({
       userAgent: iphoneUa,

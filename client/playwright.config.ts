@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
 /**
+ * E2E 规格位于 `tests/e2e/`。
+ *
  * 使用前请先在本机终端启动：
  *   终端1: cd server && npm run dev
  *   终端2: cd client && npm run dev
@@ -10,7 +12,7 @@ import { defineConfig, devices } from '@playwright/test'
  *   npm run test:e2e
  */
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './tests/e2e',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 0,

@@ -8,6 +8,8 @@
     "install:all": "npm install && cd client && npm install && cd ../server && npm install",
     "build": "cd client && npm run build",
     "test": "cd server && npm run test",
+    "test:client": "cd client && npm run test",
+    "test:all": "cd server && npm run test && cd ../client && npm run test",
     "test:e2e": "cd client && npm run test:e2e",
     "openspec": "openspec",
     "openspec:update": "openspec update"

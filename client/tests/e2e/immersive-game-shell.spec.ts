@@ -1,9 +1,19 @@
+/**
+ * Playwright E2E：对局壳层布局与音频控件位置。
+ *
+ * 测试边界（范围内）：
+ * - 桌面视口下 `.game-container` 宽度占视口比例、音频 toggle 是否在壳层矩形内。
+ *
+ * 不在范围内：
+ * - 音频静音逻辑、Socket 发牌正确性、移动端安全区。
+ *
+ * 环境前提：前端 dev/preview 可达；本地对战 mode=local 可不强制后端（路由仍加载）。
+ */
+
 import { test, expect } from '@playwright/test'
 
-/**
- * 对局壳层满宽 + 音频控件位于 game-container 内（需后端 Socket + 前端 dev/preview）
- */
 test.describe('immersive game shell', () => {
+  // 边界：大屏宽度 ≥0.88 vw；控件几何落入壳层 bbox±pad（不测像素级 CSS）
   test('wide viewport: game-container width ratio; audio toggles inside shell', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/game?mode=local&difficulty=normal&name=e2e', {

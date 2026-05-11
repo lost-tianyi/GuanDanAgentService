@@ -86,7 +86,7 @@ npx tsc --noEmit  # 类型检查
 合并涉及客户端或服务端的改动前，建议在本地依次执行：
 - `cd guandan/client && npm run build && npm run test`
 - `cd guandan/server && npm run test`
-- E2E（需已启动 `server` 与 `client` 开发服务）：`cd guandan/client && npm run test:e2e`（含对局壳层满宽与顶栏音频控件的 `immersive-game-shell` 等 spec）
+- E2E（需已启动 `server` 与 `client` 开发服务）：`cd guandan/client && npm run test:e2e`；规格在 `client/tests/e2e/`（含 `immersive-game-shell` 等）
 
 ## 8) Docker 部署
 

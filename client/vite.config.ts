@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [vue()],
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.ts'],
   },
   build: {
     rollupOptions: {

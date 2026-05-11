@@ -1,10 +1,19 @@
+/**
+ * Playwright E2E：出牌按钮命中诊断（调试向，弱断言）。
+ *
+ * 测试边界（范围内）：
+ * - 进入本地对局后 `btn-play-cards` 可见；elementFromPoint 拾取链非空。
+ *
+ * 不在范围内：
+ * - 出牌是否符合规则、AI 响应、动画完成态。
+ *
+ * 环境前提：前端 + 后端 Socket（默认 3001）建议已启动；networkidle 依赖资源加载。
+ */
+
 import { test, expect } from '@playwright/test'
 
-/**
- * 诊断「出牌」按钮：是否被其它层遮挡、是否处于 disabled、点击是否触发。
- * 依赖后端 Socket（localhost:3001）与前端 Vite（默认 5173）已启动。
- */
 test.describe('出牌按钮诊断', () => {
+  // 边界：几何命中与 disabled 状态日志；不断言「一定可点击出牌」（依赖手牌状态）
   test('elementFromPoint 与 disabled 状态', async ({ page }) => {
     await page.goto('/game?mode=local&difficulty=normal&name=e2e', {
       waitUntil: 'networkidle',
@@ -57,7 +66,6 @@ test.describe('出牌按钮诊断', () => {
     }, { cx, cy })
     console.log('[e2e] elementFromPoint after selection:', hit2)
 
-    // 期望：拾取到的应是按钮本身或其子节点（纯文本按钮一般命中 BUTTON）
     expect(hit?.chain?.length).toBeGreaterThan(0)
   })
 })
