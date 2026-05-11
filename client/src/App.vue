@@ -1,7 +1,19 @@
 <template>
-  <AudioChromeControls v-if="floatingAudio" variant="floating" />
+  <div
+    class="layout-scale-viewport"
+    :class="{ 'layout-scale-viewport--uniform': stageUniformActive }"
+  >
+    <div
+      id="layout-scale-stage"
+      class="layout-scale-stage"
+      data-testid="layout-scale-stage"
+      :style="stageInlineStyle"
+    >
+      <AudioChromeControls v-if="floatingAudio" variant="floating" />
+      <router-view />
+    </div>
+  </div>
   <PortraitRotateGate />
-  <router-view />
 </template>
 
 <script setup lang="ts">
@@ -10,12 +22,15 @@ import { useRoute } from 'vue-router'
 import { warmupSpeechVoices } from '@/audio/play-announce'
 import { resumeAudioForSfx } from '@/audio/play-sfx'
 import { useBGM } from '@/composables/useBGM'
+import { useMobileLandscapeUniformScale } from '@/composables/useMobileLandscapeUniformScale'
 import PortraitRotateGate from '@/components/PortraitRotateGate.vue'
 import AudioChromeControls from '@/components/AudioChromeControls.vue'
 import { showFloatingAudioChrome } from '@/utils/route-audio-chrome'
 
 const route = useRoute()
 const floatingAudio = computed(() => showFloatingAudioChrome(route.name))
+
+const { stageUniformActive, stageInlineStyle } = useMobileLandscapeUniformScale()
 
 const { unlockOnFirstInteraction } = useBGM()
 

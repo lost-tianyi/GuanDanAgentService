@@ -30,3 +30,27 @@ export function shouldShowPortraitGate(
   if (!isMobileUiCandidate(ua, userAgentDataMobile)) return false
   return height > width
 }
+
+/** 手机形态且横屏（与 `html.layout--mobile-landscape` 判定一致） */
+export function isMobileLandscapeViewport(
+  width: number,
+  height: number,
+  ua?: string,
+  userAgentDataMobile?: boolean | null
+): boolean {
+  if (!isMobileUiCandidate(ua, userAgentDataMobile)) return false
+  return width >= height
+}
+
+/**
+ * 手机横屏对局专用壳层是否启用（与竖屏引导互斥：竖屏时遮罩在上层，此值为 false）。
+ * 判定与 `isMobileLandscapeViewport` 一致：移动候选且宽≥高。
+ */
+export function shouldUseMobileLandscapeGameShell(
+  width: number,
+  height: number,
+  ua?: string,
+  userAgentDataMobile?: boolean | null
+): boolean {
+  return isMobileLandscapeViewport(width, height, ua, userAgentDataMobile)
+}

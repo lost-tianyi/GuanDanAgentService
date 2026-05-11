@@ -10,7 +10,12 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { isMobileUiCandidate, shouldShowPortraitGate } from '@/utils/viewport'
+import {
+  isMobileLandscapeViewport,
+  isMobileUiCandidate,
+  shouldShowPortraitGate,
+  shouldUseMobileLandscapeGameShell,
+} from '@/utils/viewport'
 
 const iphoneUa =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
@@ -32,6 +37,37 @@ describe('isMobileUiCandidate', () => {
   it('detects mobile from UA when hints absent', () => {
     expect(isMobileUiCandidate(iphoneUa, undefined)).toBe(true)
     expect(isMobileUiCandidate(desktopChromeUa, undefined)).toBe(false)
+  })
+})
+
+describe('shouldUseMobileLandscapeGameShell', () => {
+  it('matches isMobileLandscapeViewport for shell branch contract', () => {
+    expect(shouldUseMobileLandscapeGameShell(844, 390, iphoneUa)).toBe(
+      isMobileLandscapeViewport(844, 390, iphoneUa),
+    )
+    expect(shouldUseMobileLandscapeGameShell(390, 844, iphoneUa)).toBe(
+      isMobileLandscapeViewport(390, 844, iphoneUa),
+    )
+    expect(shouldUseMobileLandscapeGameShell(1200, 800, desktopChromeUa)).toBe(
+      isMobileLandscapeViewport(1200, 800, desktopChromeUa),
+    )
+  })
+})
+
+describe('isMobileLandscapeViewport', () => {
+  // 边界：移动 + 横屏（宽≥高）
+  it('is true for mobile UA and landscape dimensions', () => {
+    expect(isMobileLandscapeViewport(844, 390, iphoneUa)).toBe(true)
+  })
+
+  // 边界：移动 + 竖屏
+  it('is false when height > width', () => {
+    expect(isMobileLandscapeViewport(390, 844, iphoneUa)).toBe(false)
+  })
+
+  // 边界：桌面 UA 横屏仍 false
+  it('is false for desktop UA even if landscape', () => {
+    expect(isMobileLandscapeViewport(1200, 800, desktopChromeUa)).toBe(false)
   })
 })
 

@@ -3,7 +3,8 @@
  *
  * 测试边界（范围内）：
  * - 固定 iPhone UA + 竖屏视口 → `portrait-rotate-gate` 可见。
- * - 横屏后 gate 隐藏；`home-menu-ai` 可点开难度选择。
+ * - 横屏后 gate 隐藏；主舞台 `layout-scale-stage` 应用 CSS transform 做手机横屏等比缩放。
+ * - `home-menu-ai` 可点开难度选择。
  *
  * 不在范围内：
  * - 真机 Orientation API、全屏、刘海遮挡。
@@ -38,6 +39,11 @@ test.describe('mobile landscape orientation gate', () => {
 
       await page.setViewportSize({ width: 844, height: 390 })
       await expect(page.getByTestId('portrait-rotate-gate')).toBeHidden()
+
+      const stageTransform = await page.getByTestId('layout-scale-stage').evaluate((el) => {
+        return getComputedStyle(el).transform
+      })
+      expect(stageTransform, 'mobile landscape should scale the logical canvas').not.toBe('none')
 
       await expect(page.getByTestId('home-menu-ai')).toBeVisible()
       await page.getByTestId('home-menu-ai').click()

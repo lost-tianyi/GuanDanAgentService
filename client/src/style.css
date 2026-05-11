@@ -149,39 +149,51 @@ html.layout--mobile-landscape .back-btn {
 }
 
 html.layout--mobile-landscape .game-board__content {
-  padding: 8px 6px;
+  padding: 6px 6px;
+}
+
+/** 优先保证中央出牌区：中间行至少保留一块「桌面」高度 */
+html.layout--mobile-landscape .game-board__content .middle-row {
+  flex: 1 1 auto;
+  min-height: min(112px, 24dvh);
 }
 
 html.layout--mobile-landscape .game-board__content .top-player {
-  height: 64px;
+  height: 56px;
 }
 
 html.layout--mobile-landscape .game-board__content .left-player,
 html.layout--mobile-landscape .game-board__content .right-player {
-  width: min(22vw, 120px);
+  width: min(20vw, 112px);
 }
 
+/** 底部区：略抬高上限，避免量到过矮槽位配合旧逻辑把手牌缩得过小 */
 html.layout--mobile-landscape .game-board__content .bottom-player {
-  min-height: min(150px, 30vh);
-  padding-top: 6px;
-  gap: 6px 8px;
+  min-height: 0;
+  max-height: min(50dvh, 300px);
+  flex-shrink: 2;
+  padding-top: 4px;
+  gap: 4px 8px;
 }
 
+/** 手牌槽：过高叠牌时由 .hand-cards 滚动；比例下限见 HAND_CARD_MIN_RATIO */
+html.layout--mobile-landscape .game-board__content .my-cards {
+  max-height: min(48dvh, 280px);
+  min-height: 0;
+  align-items: flex-end;
+}
+
+/** 手牌根节点：配合 HandCards scoped 内 overflow，横屏极矮时可纵向滚动 */
 html.layout--mobile-landscape .hand-cards {
-  --card-w: 52px;
-  --card-h: 74px;
-  --stack-overlap: 50px;
-  gap: 8px;
-  padding: 6px 6px 8px;
+  box-sizing: border-box;
 }
 
 html.layout--mobile-landscape .game-controls,
 html.layout--mobile-landscape .tribute-actions {
-  padding-top: 8px;
-  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  padding: 6px 8px max(8px, env(safe-area-inset-bottom));
   padding-left: max(8px, env(safe-area-inset-left));
   padding-right: max(8px, env(safe-area-inset-right));
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -189,20 +201,35 @@ html.layout--mobile-landscape .tribute-hint {
   padding-bottom: max(8px, env(safe-area-inset-bottom));
 }
 
+/** 略小于 44px，减轻与手牌的视觉失衡；触控区仍由 padding 补足 */
 html.layout--mobile-landscape .control-btn {
-  min-height: 44px;
-  min-width: 44px;
+  min-height: 40px;
+  min-width: 40px;
   box-sizing: border-box;
 }
 
+html.layout--mobile-landscape .control-btn.play,
+html.layout--mobile-landscape .control-btn.pass,
+html.layout--mobile-landscape .control-btn.tribute {
+  padding: 6px 14px;
+  font-size: 13px;
+  line-height: 1.15;
+}
+
 html.layout--mobile-landscape .control-btn.auto-play {
-  padding: 10px 18px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+html.layout--mobile-landscape .coach-switch-row {
+  min-width: 72px;
 }
 
 html.layout--mobile-landscape .coach-switch-btn {
-  min-height: 44px;
-  min-width: 44px;
-  padding: 10px 12px;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 6px 10px;
+  font-size: 12px;
   box-sizing: border-box;
 }
 
@@ -233,4 +260,40 @@ html.layout--mobile-landscape .input-area button {
   min-height: 44px;
   min-width: 44px;
   box-sizing: border-box;
+}
+
+/**
+ * 手机横屏：逻辑画布等比缩放（App.vue layout-scale-stage）
+ */
+.layout-scale-viewport {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+}
+
+.layout-scale-viewport--uniform {
+  height: 100dvh;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.layout-scale-stage {
+  box-sizing: border-box;
+  position: relative;
+}
+
+html.layout--mobile-landscape .layout-scale-viewport--uniform .layout-scale-stage .game-container {
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
+html.layout--mobile-landscape .layout-scale-viewport--uniform .layout-scale-stage .home {
+  min-height: 100% !important;
+}
+
+html.layout--mobile-landscape .layout-scale-viewport--uniform .layout-scale-stage .chat-window {
+  width: min(300px, calc(100% - 24px));
+  height: min(360px, calc(100% - 96px));
+  max-height: calc(100% - 96px);
 }

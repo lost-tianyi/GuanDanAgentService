@@ -8,3 +8,7 @@
 运行：`cd client && npm run test`（单元）、`npm run test:e2e`（E2E）。
 
 预加载回归：`tests/unit/utils/game-assets-preload.preload.test.ts`（`happy-dom`，模拟 Image/Audio）。
+
+横屏等比缩放：`tests/unit/utils/layout-scale.test.ts`（`computeUniformScale`）；`viewport.test.ts` 含 `isMobileLandscapeViewport`。
+
+手牌单行缩放：`tests/unit/utils/hand-cards-layout.test.ts`（`computeHandCardLayout`、`handCardsOuterWidthUnit`）。

@@ -32,8 +32,8 @@
       </div>
     </div>
 
-    <div class="bottom-player">
-      <div class="my-cards">
+    <div v-if="!detachBottomPlayer" class="bottom-player">
+        <div class="my-cards">
         <HandCards 
           :cards="myCards"
           :selected-cards="selectedCards"
@@ -66,8 +66,10 @@ const props = withDefaults(
     myPlayerId: string
     /** 托管等场景下禁止本地选牌 */
     handSelectable?: boolean
+    /** 手机横屏壳层：手牌与 bottom-actions 由父级 player-zone 承载 */
+    detachBottomPlayer?: boolean
   }>(),
-  { handSelectable: true },
+  { handSelectable: true, detachBottomPlayer: false },
 )
 
 const emit = defineEmits<{

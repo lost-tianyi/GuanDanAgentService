@@ -1,5 +1,131 @@
 <template>
-  <div class="game-container" :style="themeCssVars">
+  <MobileLandscapeGameShell v-if="mobileLandscapeShellActive" class="game-root-mobile" :style="themeCssVars">
+    <template #top>
+      <header class="ml-game-header">
+        <div class="room-info">
+          <span class="stat-chip"
+            ><span class="stat-chip__k">房间</span><span class="stat-chip__v">{{ displayRoomId }}</span></span
+          >
+          <span class="stat-chip"
+            ><span class="stat-chip__k">等级</span><span class="stat-chip__v">{{ currentLevel }}</span></span
+          >
+          <span class="stat-chip"
+            ><span class="stat-chip__k">级牌</span><span class="stat-chip__v">{{ levelRankLabel }}</span></span
+          >
+          <span class="stat-chip"
+            ><span class="stat-chip__k">回合</span><span class="stat-chip__v">{{ roundNumber }}</span></span
+          >
+          <span v-if="store.gameState.status === 'tribute'" class="stat-chip stat-chip--phase"
+            ><span class="stat-chip__v">进贡/还牌</span></span
+          >
+        </div>
+        <div class="game-header__trailing">
+          <AudioChromeControls variant="embedded" />
+          <button type="button" class="back-btn" @click="goHome">
+            <img class="back-btn__icon" :src="ui.iconBack" alt="" width="18" height="18" draggable="false" />
+            返回
+          </button>
+        </div>
+      </header>
+    </template>
+
+    <GameBoard
+      :game-state="store.gameState"
+      :selected-cards="store.selectedCards"
+      :my-player-id="store.playerId"
+      :hand-selectable="handSelectable"
+      :detach-bottom-player="true"
+      @select-card="handleSelectCard"
+      @add-to-selection="handleAddToSelection"
+      @play-cards="handlePlayCards"
+      @pass="handlePass"
+    />
+
+    <template #player-zone>
+      <div v-if="store.gameState.status === 'tribute'" class="ml-tribute">
+        <p v-if="store.currentTributeStep" class="ml-tribute__text">{{ tributePhaseDescription }}</p>
+        <div class="ml-actions">
+          <button
+            class="control-btn tribute"
+            :disabled="store.selectedCards.length !== 1 || !store.isMyTributeTurn || tributeSubmitBlocked"
+            @click="handleSubmitTribute"
+          >
+            {{ tributeButtonLabel }}
+          </button>
+          <button
+            v-if="canToggleAutoPlay"
+            type="button"
+            class="control-btn auto-play"
+            data-testid="btn-auto-play-tribute"
+            @click="toggleAutoPlay"
+          >
+            {{ store.autoPlayEnabled ? '取消托管' : '托管' }}
+          </button>
+        </div>
+      </div>
+
+      <template v-else>
+        <div class="ml-actions">
+          <button
+            type="button"
+            class="control-btn play"
+            data-testid="btn-play-cards"
+            :disabled="store.selectedCards.length === 0 || !canPlay"
+            @click="handlePlayCards"
+          >
+            出牌
+          </button>
+          <button type="button" class="control-btn pass" data-testid="btn-pass" :disabled="!canPass" @click="handlePass">
+            不出
+          </button>
+          <button
+            v-if="canToggleAutoPlay"
+            type="button"
+            class="control-btn auto-play"
+            data-testid="btn-auto-play"
+            @click="toggleAutoPlay"
+          >
+            {{ store.autoPlayEnabled ? '取消托管' : '托管' }}
+          </button>
+          <template v-if="showCoachHint">
+            <button
+              type="button"
+              class="coach-switch-btn coach-switch-btn--inline"
+              :class="{ active: coachShell === 'hand' }"
+              role="tab"
+              :aria-selected="coachShell === 'hand'"
+              @click="coachShell = 'hand'"
+            >
+              手牌
+            </button>
+            <button
+              type="button"
+              class="coach-switch-btn coach-switch-btn--inline"
+              :class="{ active: coachShell === 'coach' }"
+              role="tab"
+              :aria-selected="coachShell === 'coach'"
+              @click="coachShell = 'coach'"
+            >
+              教练提示
+            </button>
+          </template>
+        </div>
+      </template>
+
+      <div class="ml-hand-strip">
+        <HandCards
+          :cards="myHandCards"
+          :selected-cards="store.selectedCards"
+          :selectable="handSelectable"
+          :level-rank="store.gameState.levelRank"
+          @select="handleSelectCard"
+          @add-to-selection="handleAddToSelection"
+        />
+      </div>
+    </template>
+  </MobileLandscapeGameShell>
+
+  <div v-else class="game-container" :style="themeCssVars">
     <div class="game-header">
       <div class="room-info">
         <span class="stat-chip"
@@ -65,6 +191,56 @@
       </GameBoard>
     </div>
 
+    <div v-if="store.gameState.status === 'tribute'" class="tribute-hint">
+      <p v-if="store.currentTributeStep">
+        {{ tributePhaseDescription }}
+      </p>
+      <div class="tribute-actions">
+        <button
+          class="control-btn tribute"
+          :disabled="store.selectedCards.length !== 1 || !store.isMyTributeTurn || tributeSubmitBlocked"
+          @click="handleSubmitTribute"
+        >
+          {{ tributeButtonLabel }}
+        </button>
+        <button
+          v-if="canToggleAutoPlay"
+          type="button"
+          class="control-btn auto-play"
+          data-testid="btn-auto-play-tribute"
+          @click="toggleAutoPlay"
+        >
+          {{ store.autoPlayEnabled ? '取消托管' : '托管' }}
+        </button>
+      </div>
+    </div>
+
+    <div v-else class="game-controls">
+      <button
+        type="button"
+        class="control-btn play"
+        data-testid="btn-play-cards"
+        :disabled="store.selectedCards.length === 0 || !canPlay"
+        @click="handlePlayCards"
+      >
+        出牌
+      </button>
+      <button type="button" class="control-btn pass" data-testid="btn-pass" :disabled="!canPass" @click="handlePass">
+        不出
+      </button>
+      <button
+        v-if="canToggleAutoPlay"
+        type="button"
+        class="control-btn auto-play"
+        data-testid="btn-auto-play"
+        @click="toggleAutoPlay"
+      >
+        {{ store.autoPlayEnabled ? '取消托管' : '托管' }}
+      </button>
+    </div>
+  </div>
+
+    <!-- Teleport 勿挂 #layout-scale-stage：与 router-view 同容器会在卸载对局时触发 Vue insertBefore 冲突，导致返回首页 router-view 空白（黑屏） -->
     <Teleport to="body">
       <Transition name="coach-float">
         <div
@@ -142,61 +318,12 @@
       </div>
     </Teleport>
 
-    <div v-if="store.gameState.status === 'tribute'" class="tribute-hint">
-      <p v-if="store.currentTributeStep">
-        {{ tributePhaseDescription }}
-      </p>
-      <div class="tribute-actions">
-        <button
-          class="control-btn tribute"
-          :disabled="store.selectedCards.length !== 1 || !store.isMyTributeTurn || tributeSubmitBlocked"
-          @click="handleSubmitTribute"
-        >
-          {{ tributeButtonLabel }}
-        </button>
-        <button
-          v-if="canToggleAutoPlay"
-          type="button"
-          class="control-btn auto-play"
-          data-testid="btn-auto-play-tribute"
-          @click="toggleAutoPlay"
-        >
-          {{ store.autoPlayEnabled ? '取消托管' : '托管' }}
-        </button>
-      </div>
-    </div>
-
-    <div v-else class="game-controls">
-      <button
-        type="button"
-        class="control-btn play"
-        data-testid="btn-play-cards"
-        :disabled="store.selectedCards.length === 0 || !canPlay"
-        @click="handlePlayCards"
-      >
-        出牌
-      </button>
-      <button type="button" class="control-btn pass" data-testid="btn-pass" :disabled="!canPass" @click="handlePass">
-        不出
-      </button>
-      <button
-        v-if="canToggleAutoPlay"
-        type="button"
-        class="control-btn auto-play"
-        data-testid="btn-auto-play"
-        @click="toggleAutoPlay"
-      >
-        {{ store.autoPlayEnabled ? '取消托管' : '托管' }}
-      </button>
-    </div>
-
-    <ChatWindow
-      :messages="store.messages"
-      :my-player-id="store.playerId"
-      @send-message="handleSendMessage"
-      @send-emoji="handleSendEmoji"
-    />
-  </div>
+  <ChatWindow
+    :messages="store.messages"
+    :my-player-id="store.playerId"
+    @send-message="handleSendMessage"
+    @send-emoji="handleSendEmoji"
+  />
 </template>
 
 <script setup lang="ts">
@@ -205,7 +332,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { ui } from '@/assets/ui/urls'
 import AudioChromeControls from '@/components/AudioChromeControls.vue'
 import GameBoard from '@/components/Game/GameBoard.vue'
+import HandCards from '@/components/Game/HandCards.vue'
+import MobileLandscapeGameShell from '@/components/Game/MobileLandscapeGameShell.vue'
 import ChatWindow from '@/components/Chat/ChatWindow.vue'
+import { useMobileLandscapeGameShellActive } from '@/composables/useMobileLandscapeGameShell'
 import CoachHintPanel from '@/components/Game/CoachHintPanel.vue'
 import type { Card, CoachHintMode } from '@/types'
 import { matchHandToCoachLabels } from '@/utils/coach-card-match'
@@ -216,6 +346,7 @@ const route = useRoute()
 const router = useRouter()
 const store = useGameStore()
 const socketApi = useSocket()
+const { active: mobileLandscapeShellActive } = useMobileLandscapeGameShellActive()
 
 const localRoomId = `LOCAL-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
 const routeRoomId = ref((route.query.room as string) || localRoomId)
@@ -231,6 +362,10 @@ const levelRankLabel = computed(() => {
 })
 const roundNumber = computed(() => store.gameState.roundNumber)
 const displayRoomId = computed(() => store.roomId || routeRoomId.value)
+
+const myHandCards = computed(
+  () => store.gameState.players.find((p) => p.id === store.playerId)?.cards ?? [],
+)
 
 const themeCssVars = computed(() => ({
   '--ui-theme-wood': `url(${ui.themePanelHeaderWood})`,
@@ -349,9 +484,10 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onCoachEscape)
 })
 
-const goHome = () => {
+async function goHome() {
+  document.body.style.overflow = ''
+  await router.push({ name: 'home' })
   socketApi.disconnect()
-  router.push('/')
 }
 
 const handleSelectCard = (card: Card) => {
@@ -960,5 +1096,80 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
   cursor: pointer;
+}
+
+/* ----- 手机横屏专用壳层 ----- */
+.game-root-mobile {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.ml-game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+}
+
+.ml-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px 10px;
+  min-height: 48px;
+}
+
+.ml-tribute {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.ml-tribute__text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255, 240, 220, 0.88);
+  max-width: 92vw;
+}
+
+.ml-hand-strip {
+  max-height: min(200px, 38%);
+  min-height: 96px;
+  padding: 6px 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 220, 160, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.ml-hand-strip :deep(.hand-cards) {
+  justify-content: flex-start;
+}
+
+.coach-switch-btn--inline {
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 10px;
+}
+
+.coach-switch-btn--inline:first-of-type {
+  border-radius: 10px;
+}
+
+.coach-switch-btn--inline:last-of-type {
+  border-radius: 10px;
 }
 </style>

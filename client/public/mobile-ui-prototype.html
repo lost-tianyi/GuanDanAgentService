@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>惯蛋 · 端侧 UI 原型（最大化画布）</title>
+    <!--
+      设计意图（与桌面端分叉）：
+      1. 横屏端侧：牌桌 felt 占满整页（100dvh × 100vw，含 safe-area），顶栏/底栏均为画布内叠层，不单独占 flex 行。
+      2. 手牌与主操作叠在 felt 底部（player-zone），视觉上属于「桌面的一部分」。
+      3. 顶栏单行高密度 chip + 图标，叠在画布顶部。
+      4. 四角玩家贴边胶囊；中央出牌区；手牌/教练与出牌同一操作行（托管旁）。
+      5. env(safe-area-inset-*) 全局适配。
+
+      打开方式：npm run dev 后访问 /mobile-ui-prototype.html
+    -->
+    <style>
+      :root {
+        --chrome-h: 44px;
+        --bottom-actions-h: 48px;
+        --hand-strip-max-h: min(28dvh, 200px);
+        --felt-radius: 14px;
+        --gold: #e8b535;
+        --felt-dark: #1a120c;
+        --felt-mid: #2d2218;
+        --chip-bg: rgba(22, 16, 12, 0.92);
+        --chip-border: rgba(232, 181, 53, 0.35);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+        /* 与 felt 同色渐变延伸，避免圆角/安全区外露出「另一块黑底」 */
+        background: linear-gradient(145deg, #2a2118 0%, var(--felt-mid) 45%, var(--felt-dark) 100%);
+        color: #f5ebe0;
+        font-family:
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'PingFang SC',
+          sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      /* ----- 壳层：整页即牌桌，无底部「说明条」抢高度 ----- */
+      .shell {
+        min-height: 100dvh;
+        min-height: 100svh;
+        height: 100dvh;
+        height: 100svh;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        margin: 0;
+        padding: 0;
+      }
+
+      /* ----- 顶栏：默认叠在画布顶（横屏全屏 felt 内） ----- */
+      .top-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-height: var(--chrome-h);
+        padding: 6px 8px;
+        padding-top: max(6px, env(safe-area-inset-top, 0px));
+        padding-left: max(8px, env(safe-area-inset-left, 0px));
+        padding-right: max(8px, env(safe-area-inset-right, 0px));
+        background: linear-gradient(180deg, rgba(26, 18, 12, 0.92) 0%, rgba(26, 18, 12, 0.55) 70%, transparent 100%);
+        border-bottom: none;
+      }
+
+      .top-bar--overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 6;
+        pointer-events: auto;
+      }
+
+      .top-bar__meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 5px 6px;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .chip {
+        font-size: 11px;
+        line-height: 1.2;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: var(--chip-bg);
+        border: 1px solid var(--chip-border);
+        white-space: nowrap;
+      }
+
+      .chip kbd {
+        opacity: 0.75;
+        font-weight: 600;
+        margin-right: 4px;
+      }
+
+      .chip strong {
+        color: #fff;
+        font-weight: 700;
+      }
+
+      .top-bar__tools {
+        flex-shrink: 0;
+        display: flex;
+        gap: 6px;
+      }
+
+      .icon-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(0, 0, 0, 0.25);
+        color: #fff;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      /* ----- 主体：felt = 整页牌桌 ----- */
+      .stage-wrap {
+        position: relative;
+        flex: 1 1 0;
+        min-height: 0;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+      }
+
+      .felt {
+        flex: 1 1 0;
+        min-height: 0;
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+        box-shadow: inset 0 0 0 1px rgba(255, 200, 120, 0.06);
+        background:
+          radial-gradient(ellipse 80% 70% at 50% 42%, rgba(80, 52, 28, 0.35) 0%, transparent 55%),
+          linear-gradient(145deg, #3d2e20 0%, var(--felt-mid) 38%, var(--felt-dark) 100%);
+      }
+
+      /* 横竖屏均铺满：说明文案不占布局（见 .legend） */
+      @media (orientation: landscape) {
+        .felt {
+          border-radius: 0;
+        }
+
+        .seat--top {
+          top: max(10px, calc(env(safe-area-inset-top, 0px) + 44px));
+        }
+      }
+
+      @media (orientation: portrait) {
+        .felt {
+          border-radius: var(--felt-radius);
+          box-shadow:
+            inset 0 0 0 1px rgba(255, 200, 120, 0.08),
+            0 8px 32px rgba(0, 0, 0, 0.35);
+        }
+      }
+
+      /* 贴边玩家：不占桌面矩形内部 */
+      .seat {
+        position: absolute;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px;
+        border-radius: 12px;
+        background: rgba(12, 9, 7, 0.72);
+        border: 1px solid rgba(255, 200, 100, 0.15);
+        font-size: 11px;
+        max-width: min(38vw, 150px);
+      }
+
+      .seat--top {
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .seat--left {
+        left: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .seat--right {
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        flex-direction: column;
+        align-items: flex-end;
+      }
+
+      .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(145deg, #6b5 0%, #384 100%);
+        flex-shrink: 0;
+      }
+
+      .seat__text {
+        min-width: 0;
+      }
+
+      .seat__name {
+        font-weight: 700;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .seat__sub {
+        opacity: 0.75;
+        font-size: 10px;
+      }
+
+      /* 桌面中心：出牌区占位 */
+      .table-center {
+        position: absolute;
+        inset: 18% 22%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+
+      .table-center__mock {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        align-content: center;
+        opacity: 0.35;
+      }
+
+      .mini-card {
+        width: 36px;
+        height: 50px;
+        border-radius: 5px;
+        background: linear-gradient(180deg, #fff 0%, #e8e8e8 100%);
+        border: 1px solid rgba(0, 0, 0, 0.15);
+      }
+
+      .felt-label {
+        position: absolute;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + var(--hand-strip-max-h) + var(--bottom-actions-h) + 24px);
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        opacity: 0.3;
+        text-transform: uppercase;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      /* ----- 叠在 felt 底部：仅用褐色调轻微压暗，不用黑条 —— 与桌面同色连续 ----- */
+      .player-zone {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 5;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 8px max(8px, env(safe-area-inset-bottom, 0px));
+        padding-left: max(8px, env(safe-area-inset-left, 0px));
+        padding-right: max(8px, env(safe-area-inset-right, 0px));
+        background: linear-gradient(
+          180deg,
+          rgba(45, 34, 24, 0) 0%,
+          rgba(35, 26, 18, 0.28) 35%,
+          rgba(26, 18, 12, 0.52) 100%
+        );
+        pointer-events: auto;
+      }
+
+      .actions {
+        min-height: var(--bottom-actions-h);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 8px 10px;
+      }
+
+      .btn {
+        min-height: 44px;
+        padding: 0 18px;
+        border-radius: 10px;
+        border: none;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .btn--primary {
+        background: linear-gradient(180deg, #fac542 0%, #c97106 100%);
+        color: #1a1208;
+        box-shadow: 0 4px 14px rgba(232, 148, 12, 0.35);
+      }
+
+      .btn--ghost {
+        background: rgba(48, 36, 26, 0.95);
+        color: #f5ebe0;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+      }
+
+      /* 手牌：横向滚动，背景透明 —— 牌背叠在绿毯上，仅描边提示可滑区域 */
+      .hand-strip {
+        max-height: var(--hand-strip-max-h);
+        min-height: 88px;
+        padding: 8px 6px;
+        border-radius: 12px;
+        background: transparent;
+        border: 1px solid rgba(255, 220, 160, 0.12);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .hand-strip::-webkit-scrollbar {
+        height: 4px;
+      }
+
+      .hand-strip::-webkit-scrollbar-thumb {
+        background: rgba(232, 181, 53, 0.35);
+        border-radius: 4px;
+      }
+
+      .hand-card {
+        display: inline-block;
+        vertical-align: bottom;
+        width: 44px;
+        height: 62px;
+        margin-right: -28px;
+        border-radius: 6px;
+        background: linear-gradient(180deg, #fff 0%, #eee 100%);
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+      }
+
+      .hand-card:last-child {
+        margin-right: 0;
+      }
+
+      /* 不占 flex 高度，避免底部露出 body 黑条；需要时在 DevTools 临时取消 display:none */
+      .legend {
+        display: none;
+        flex: 0 0 auto;
+        padding: 8px 12px;
+        font-size: 11px;
+        line-height: 1.55;
+        color: rgba(255, 255, 255, 0.45);
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .shell {
+        padding-left: env(safe-area-inset-left, 0px);
+        padding-right: env(safe-area-inset-right, 0px);
+      }
+
+      .legend code {
+        font-size: 10px;
+        background: rgba(255, 255, 255, 0.06);
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="stage-wrap">
+        <main class="felt" aria-label="牌桌画布（横屏铺满整页）">
+          <header class="top-bar top-bar--overlay">
+            <div class="top-bar__meta">
+              <span class="chip"><kbd>房间</kbd><strong>LOCAL-PROTOTYPE</strong></span>
+              <span class="chip"><kbd>等级</kbd><strong>2</strong></span>
+              <span class="chip"><kbd>级牌</kbd><strong>♥2</strong></span>
+              <span class="chip"><kbd>回合</kbd><strong>1</strong></span>
+            </div>
+            <div class="top-bar__tools">
+              <button type="button" class="icon-btn" aria-label="音效">🔊</button>
+              <button type="button" class="icon-btn" aria-label="返回">←</button>
+            </div>
+          </header>
+
+          <div class="seat seat--top">
+            <div class="avatar" aria-hidden="true"></div>
+            <div class="seat__text">
+              <div class="seat__name">AI · 对家</div>
+              <div class="seat__sub">27 张 · Lv.2</div>
+            </div>
+          </div>
+          <div class="seat seat--left">
+            <div class="avatar" aria-hidden="true"></div>
+            <div class="seat__text">
+              <div class="seat__name">AI · 左</div>
+              <div class="seat__sub">27 张</div>
+            </div>
+          </div>
+          <div class="seat seat--right">
+            <div class="avatar" aria-hidden="true"></div>
+            <div class="seat__text">
+              <div class="seat__name">AI · 右</div>
+              <div class="seat__sub">27 张</div>
+            </div>
+          </div>
+
+          <div class="table-center">
+            <div class="table-center__mock" aria-hidden="true">
+              <div class="mini-card"></div>
+              <div class="mini-card"></div>
+              <div class="mini-card"></div>
+              <div class="mini-card"></div>
+            </div>
+          </div>
+
+          <span class="felt-label">Felt · full bleed</span>
+
+          <div class="player-zone" aria-label="本家操作区（叠在牌桌内）">
+            <div class="actions">
+              <button type="button" class="btn btn--primary">出牌</button>
+              <button type="button" class="btn btn--ghost">不出</button>
+              <button type="button" class="btn btn--ghost">托管</button>
+              <button type="button" class="btn btn--ghost">手牌</button>
+              <button type="button" class="btn btn--ghost">教练</button>
+            </div>
+            <div class="hand-strip" aria-label="手牌横向带（牌桌画布内）">
+              <span class="hand-card"></span>
+              <span class="hand-card"></span>
+              <span class="hand-card"></span>
+              <span class="hand-card"></span>
+              <span class="hand-card"></span>
+              <span class="hand-card"></span>
+              <span class="hand-card"></span>
+              <span class="hand-card"></span>
+              <span class="hand-card"></span>
+              <span class="hand-card"></span>
+              <span class="hand-card"></span>
+              <span class="hand-card"></span>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      <p class="legend">
+        开发说明（默认隐藏）：整页 <code>body</code> 与 <code>.felt</code> 同色延伸；本家区仅褐色调叠层。取消 <code>.legend{ display:none }</code> 可看此段。
+      </p>
+    </div>
+  </body>
+</html>

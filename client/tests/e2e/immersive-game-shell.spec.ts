@@ -23,6 +23,7 @@ test.describe('immersive game shell', () => {
 
     const shell = page.locator('.game-container')
     await expect(shell).toBeVisible({ timeout: 60_000 })
+    await expect(page.getByTestId('mobile-landscape-game-shell')).toHaveCount(0)
 
     const metrics = await page.evaluate(() => {
       const gc = document.querySelector('.game-container')
