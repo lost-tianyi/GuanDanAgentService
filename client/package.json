@@ -23,6 +23,7 @@
   "devDependencies": {
     "@playwright/test": "^1.49.1",
     "@vitejs/plugin-vue": "^5.0.0",
+    "happy-dom": "^15.11.7",
     "typescript": "^5.5.4",
     "vite": "^5.0.0",
     "vitest": "^3.0.0",

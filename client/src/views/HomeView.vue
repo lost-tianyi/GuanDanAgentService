@@ -145,6 +145,18 @@ function tickElapsed() {
     TIER1_PRELOAD_TIMEOUT_MS,
     Math.round(performance.now() - preloadStart),
   )
+  const u = preloadUi.value
+  if (!u.show || u.total <= 0) return
+  const rawPct = (u.loaded / u.total) * 100
+  // 无任务完成时 loaded 长期为 0，仅用「完成项」驱动会让条卡死在 0%；用时间占位的上限低于 100，真实进度仍能追上 / 盖过
+  const timeFloorPct = Math.min(
+    88,
+    (preloadElapsedMs.value / TIER1_PRELOAD_TIMEOUT_MS) * 88,
+  )
+  const blended = Math.max(rawPct, timeFloorPct)
+  if (blended > u.targetPercent + 0.05) {
+    preloadUi.value = { ...u, targetPercent: blended }
+  }
 }
 
 function runSmoothLoop() {

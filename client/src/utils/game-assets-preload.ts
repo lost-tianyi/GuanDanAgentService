@@ -38,29 +38,51 @@ export const TIER1_PRELOAD_TIMEOUT_MS = 15_000
 const DEFAULT_TIMEOUT_MS = TIER1_PRELOAD_TIMEOUT_MS
 const DEFAULT_CONCURRENCY = 4
 
+/** 单张图片最长等待；超时仍 resolve 以释放并发槽位，避免全局进度永远卡在 0 */
+export const TIER1_IMAGE_PRELOAD_TIMEOUT_MS = 12_000
+
+/** 单段音频最长等待（弱网 / iOS 可能迟迟无 canplaythrough） */
+export const TIER1_AUDIO_PRELOAD_TIMEOUT_MS = 8_000
+
 function preloadImage(url: string): Promise<void> {
   return new Promise((resolve) => {
+    let settled = false
+    const finish = () => {
+      if (settled) return
+      settled = true
+      resolve()
+    }
     const img = new Image()
-    img.onload = () => resolve()
-    img.onerror = () => resolve()
+    img.onload = finish
+    img.onerror = finish
     img.src = url
+    window.setTimeout(finish, TIER1_IMAGE_PRELOAD_TIMEOUT_MS)
   })
 }
 
 function preloadAudioUrl(url: string): Promise<void> {
   return new Promise((resolve) => {
+    let settled = false
+    const done = () => {
+      if (settled) return
+      settled = true
+      resolve()
+    }
     const a = new Audio()
     a.preload = 'auto'
-    const done = () => resolve()
-    a.addEventListener('canplaythrough', done, { once: true })
-    a.addEventListener('error', done, { once: true })
+    const once = { once: true } as const
+    // canplay / loadeddata 早于 canplaythrough，避免移动端长时间卡在 0%（进度条按「完成项数」更新）
+    a.addEventListener('canplaythrough', done, once)
+    a.addEventListener('canplay', done, once)
+    a.addEventListener('loadeddata', done, once)
+    a.addEventListener('error', done, once)
     a.src = url
     try {
       a.load()
     } catch {
       done()
     }
-    window.setTimeout(done, 8000)
+    window.setTimeout(done, TIER1_AUDIO_PRELOAD_TIMEOUT_MS)
   })
 }
 

@@ -9,7 +9,12 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { TIER1_PHRASE_KEYS, TIER1_PRELOAD_TIMEOUT_MS } from '@/utils/game-assets-preload'
+import {
+  TIER1_AUDIO_PRELOAD_TIMEOUT_MS,
+  TIER1_IMAGE_PRELOAD_TIMEOUT_MS,
+  TIER1_PHRASE_KEYS,
+  TIER1_PRELOAD_TIMEOUT_MS,
+} from '@/utils/game-assets-preload'
 
 describe('game-assets-preload exports', () => {
   // 边界：列表非空、数量有上限（避免弱网一次性拉过多 wav）
@@ -22,5 +27,14 @@ describe('game-assets-preload exports', () => {
   // 边界：与 Home 预加载遮罩「最多 N 秒」文案及降级策略对齐
   it('tier1 preload timeout matches 15s UX degrade threshold', () => {
     expect(TIER1_PRELOAD_TIMEOUT_MS).toBe(15_000)
+  })
+
+  it('tier1 image preload safety timeout is bounded below global 15s window', () => {
+    expect(TIER1_IMAGE_PRELOAD_TIMEOUT_MS).toBe(12_000)
+    expect(TIER1_IMAGE_PRELOAD_TIMEOUT_MS).toBeLessThan(TIER1_PRELOAD_TIMEOUT_MS)
+  })
+
+  it('tier1 audio preload timeout constant', () => {
+    expect(TIER1_AUDIO_PRELOAD_TIMEOUT_MS).toBe(8_000)
   })
 })
